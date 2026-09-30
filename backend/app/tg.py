@@ -11,6 +11,8 @@ import asyncio
 import os
 import re
 import time
+from datetime import date, timedelta
+from urllib.parse import quote
 
 import httpx
 
@@ -37,13 +39,34 @@ def bot_username() -> str:
     return os.environ.get("TELEGRAM_BOT_USERNAME", "")
 
 
-async def _send(chat_id: int, text: str) -> None:
+async def _send(chat_id: int, text: str, markup: dict | None = None) -> None:
+    tok = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    if not tok:
+        return
+    payload = {"chat_id": chat_id, "text": text}
+    if markup:
+        payload["reply_markup"] = markup
+    async with httpx.AsyncClient(timeout=10) as c:
+        await c.post(f"{_API}{tok}/sendMessage", json=payload)
+
+
+async def _answer_cb(cb_id: str) -> None:
     tok = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     if not tok:
         return
     async with httpx.AsyncClient(timeout=10) as c:
-        await c.post(f"{_API}{tok}/sendMessage",
-                     json={"chat_id": chat_id, "text": text})
+        await c.post(f"{_API}{tok}/answerCallbackQuery", json={"callback_query_id": cb_id})
+
+
+# Кнопки-функции: агент под рукой, без командной строки.
+MENU = {"inline_keyboard": [
+    [{"text": "📋 Мой план", "callback_data": "cmd:plan"},
+     {"text": "✅ Чек-лист", "callback_data": "cmd:prep"}],
+    [{"text": "🩺 Граф здоровья", "callback_data": "cmd:graph"},
+     {"text": "⏰ Скрининги", "callback_data": "cmd:recall"}],
+    [{"text": "👨‍👩‍👧 Семья", "callback_data": "cmd:family"},
+     {"text": "🗓 Записаться", "callback_data": "cmd:book"}],
+]}
 
 
 def _fmt(n: int) -> str:
@@ -100,21 +123,7 @@ def _answer(text: str, intake: UserIntakeData, result: CheckupPackageResponse) -
         return "Активных повторных скринингов сейчас нет — вы в плане."
     if any(w in t for w in ("подготов", "натощак", "можно ли есть", "диета",
                             "чек-лист", "чеклист")):
-        prep = [s for s in result.itinerary_timeline if "подготов" in s.block.lower()]
-        if prep:
-            items = []
-            for s_ in prep:
-                for part in s_.details.split("; "):
-                    part = part.strip().rstrip(".")
-                    if part and "подтверждает клиника" not in part:
-                        items.append(part)
-            if items:
-                checklist = "\n".join(f"☐ {x}" for x in items)
-                return ("Чек-лист подготовки к чекапу:\n" + checklist +
-                        "\n\nВ день визита: паспорт, анализы натощак (вода можно), "
-                        "начало в 8:00.\nЭто не диагноз — подготовку подтверждает клиника "
-                        "при записи: +7 747 094 26 21.")
-        return "Подготовку подтверждает клиника при записи: +7 747 094 26 21."
+        return _prep_checklist_text(result)
     # Свободный текст без явной темы — это жалоба/контекст: Зелёный навигатор.
     return green_navigator(text, result)
 
@@ -271,7 +280,7 @@ async def remind_once(chat_id: int, intake: UserIntakeData) -> bool:
                 "остальное закроем в PRIME.\n"
                 "Записаться: +7 747 094 26 21 · salem@primegc.kz — или ответьте "
                 "«записаться», подготовлю текст заявки.\n"
-                "Это не диагноз; сроки и состав подтверждает врач.")
+                "Это не диагноз; сроки и состав подтверждает врач.", markup=MENU)
     return True
 
 
@@ -298,13 +307,16 @@ _TG_MODELS = [m.strip() for m in os.environ.get(
 ).split(",") if m.strip()]
 
 _SYSTEM = (
-    "Ты Primey — живой ассистент клиники PRIME в Telegram. Отвечай тепло и по-человечески, "
-    "коротко (2–8 строк), по-русски. Факты — ТОЛЬКО из карточки плана ниже: цены, состав, "
-    "даты и телефоны не выдумывай и не округляй. Не ставь диагнозы и не обещай результат "
-    "лечения. Если вопрос про цену/состав/маршрут/подготовку/повторные скрининги — отвечай "
-    "точно по карточке. Если это жалоба — мягко дай маршрут из карточки (ОСМС или PRIME) "
-    "и приложи готовый текст заявки. Экстренные состояния уже перехвачены до тебя: про 103 "
-    "пиши, только если пользователь сам описывает угрозу жизни."
+    "Ты Primey — живой, тёплый и немного дерзкий health-напарник пользователя в Telegram "
+    "от клиники PRIME. Общайся как заботливый друг, который разбирается в чекапах: коротко "
+    "(2–8 строк), по-русски, живыми фразами, с лёгкими уместными эмодзи. Иногда задавай один "
+    "человеческий уточняющий вопрос («как самочувствие сегодня?») — но не в каждом ответе. "
+    "ЖЁСТКИЕ РАМКИ: факты — ТОЛЬКО из карточки плана ниже: цены, состав, даты и телефоны не "
+    "выдумывай и не округляй. Не ставь диагнозы, не обещай результат лечения, не пугай. Если "
+    "вопрос про цену/состав/маршрут/подготовку/повторные скрининги — отвечай точно по "
+    "карточке, игривость только в подаче. Если это жалоба — мягко дай маршрут из карточки "
+    "(ОСМС или PRIME) и приложи готовый текст заявки. Экстренные состояния уже перехвачены "
+    "до тебя: про 103 пиши, только если пользователь сам описывает угрозу жизни."
 )
 
 
@@ -517,7 +529,106 @@ def _family_view(chat_id: int, sessions: dict) -> str:
             "подготовка) пойдут по активному плану.")
 
 
+def health_graph(result: CheckupPackageResponse) -> str:
+    """Красивый граф здоровья: статусы карты одним экраном. Данные — только
+    из engine.health_map, ничего не выдумываем."""
+    icon = {"due": "🔴", "next_step": "🟡", "done": "✅"}
+    order = {"due": 0, "next_step": 1, "done": 2}
+    rows = sorted(result.health_map, key=lambda h: order.get(h.status, 3))
+    lines = [f"{icon.get(h.status, '⚪')} {h.item} — {h.when}" for h in rows]
+    due = sum(1 for h in rows if h.status == "due")
+    nxt = sum(1 for h in rows if h.status == "next_step")
+    done = sum(1 for h in rows if h.status == "done")
+    return ("🩺 Твой граф здоровья\n\n" + "\n".join(lines) +
+            f"\n\n———\n✅ закрыто: {done} · 🟡 следующий шаг: {nxt} · 🔴 срок подошёл: {due}"
+            "\nЭто не диагноз — сроки по ДСМ-174/2020, подтверждает врач.")
+
+
+def _prep_checklist_text(result: CheckupPackageResponse) -> str:
+    prep = [s for s in result.itinerary_timeline if "подготов" in s.block.lower()]
+    if prep:
+        items = []
+        for s_ in prep:
+            for part in s_.details.split("; "):
+                part = part.strip().rstrip(".")
+                if part and "подтверждает клиника" not in part:
+                    items.append(part)
+        if items:
+            checklist = "\n".join(f"☐ {x}" for x in items)
+            return ("Чек-лист подготовки к чекапу:\n" + checklist +
+                    "\n\nВ день визита: паспорт, анализы натощак (вода можно), "
+                    "начало в 8:00.\nЭто не диагноз — подготовку подтверждает клиника "
+                    "при записи: +7 747 094 26 21.")
+    return "Подготовку подтверждает клиника при записи: +7 747 094 26 21."
+
+
+def _recall_text(result: CheckupPackageResponse) -> str:
+    due = [h for h in result.health_map if h.status in ("due", "next_step")]
+    if due:
+        items = "\n".join(f"• {h.item} — {h.when}" for h in due)
+        return "Повторные скрининги по приказу ДСМ-174/2020:\n" + items
+    return "Активных повторных скринингов сейчас нет — вы в плане."
+
+
+_WINDOW_HOURS = {"рано утром": ("08:00", "09:00"), "утром": ("08:00", "10:00"),
+                 "днём": ("12:00", "14:00"), "вечером": ("16:00", "18:00"),
+                 "в выходные": ("09:00", "12:00"), "в будний день": ("09:00", "12:00")}
+
+
+def _gcal_markup(window: str | None) -> dict | None:
+    """Кнопка «добавить в Google Календарь»: личное напоминание о визите на
+    желаемое окно. Это НЕ бронь слота — время подтверждает клиника."""
+    if not window or window not in _WINDOW_HOURS:
+        return None
+    day = date.today() + timedelta(days=1)
+    if window == "в выходные":
+        day += timedelta(days=(5 - day.weekday()) % 7)  # ближайшая суббота
+    start, end = _WINDOW_HOURS[window]
+    d = day.strftime("%Y%m%d")
+    dates = f"{d}T{start.replace(':', '')}00/{d}T{end.replace(':', '')}00"
+    details = ("Пожелание по времени: " + window + ". Слот подтверждает клиника PRIME: "
+               "+7 747 094 26 21, salem@primegc.kz. Подготовка: анализы натощак, вода можно.")
+    url = ("https://calendar.google.com/calendar/render?action=TEMPLATE"
+           "&text=" + quote("Чекап PRIME (подготовка натощак)") +
+           f"&dates={dates}&ctz=Asia/Almaty&details=" + quote(details))
+    return {"inline_keyboard": [[{"text": "🗓 Добавить в Google Календарь", "url": url}]]}
+
+
+async def _run_feature(chat_id: int, cmd: str, sessions: dict, text: str = "") -> None:
+    """Единая точка для кнопок и текстовых команд."""
+    if cmd == "family":
+        await _send(chat_id, _family_view(chat_id, sessions), markup=MENU)
+        return
+    sid = CHATS.get(chat_id)
+    intake = sessions.get(sid) if sid else None
+    if intake is None:
+        await _send(chat_id, _BIND_HINT)
+        return
+    result = build_response(intake)
+    if cmd == "plan":
+        await _send(chat_id, render_plan(intake, result), markup=MENU)
+    elif cmd == "prep":
+        await _send(chat_id, _prep_checklist_text(result), markup=MENU)
+    elif cmd == "graph":
+        await _send(chat_id, health_graph(result), markup=MENU)
+    elif cmd == "recall":
+        await _send(chat_id, _recall_text(result), markup=MENU)
+    elif cmd == "book":
+        await _send(chat_id, booking_request(intake, result, text),
+                    markup=_gcal_markup(_time_window(text)) or MENU)
+
+
 async def handle_update(update: dict, sessions: dict) -> None:
+    cb = update.get("callback_query") or {}
+    if cb:
+        chat_id = ((cb.get("message") or {}).get("chat") or {}).get("id")
+        data = cb.get("data") or ""
+        if cb.get("id"):
+            await _answer_cb(cb["id"])
+        if chat_id is not None and data.startswith("cmd:"):
+            await _run_feature(chat_id, data[4:], sessions)
+        return
+
     msg = update.get("message") or {}
     chat = msg.get("chat") or {}
     chat_id = chat.get("id")
@@ -526,12 +637,7 @@ async def handle_update(update: dict, sessions: dict) -> None:
         return
 
     if text.strip().lower().startswith("/plan"):
-        sid = CHATS.get(chat_id)
-        intake = sessions.get(sid) if sid else None
-        if intake is None:
-            await _send(chat_id, _BIND_HINT)
-            return
-        await _send(chat_id, render_plan(intake, build_response(intake)))
+        await _run_feature(chat_id, "plan", sessions)
         return
 
     if text.startswith("/start"):
@@ -570,8 +676,9 @@ async def handle_update(update: dict, sessions: dict) -> None:
                     "а что закрыть в PRIME.\n"
                     f"Уже знаю о вас: {knows}.\n"
                     "Действия: /plan — весь план со статусами · «записаться» — готовая "
-                    "заявка в клинику · или просто опишите жалобу — подскажу маршрут."
-                    + family_hint)
+                    "заявка в клинику · или просто опишите жалобу — подскажу маршрут. "
+                    "А ещё у меня есть кнопки 👇"
+                    + family_hint, markup=MENU)
         return
 
     # Красный флаг не ждёт привязки: тот же keyword-floor, что и на сайте.
@@ -584,7 +691,14 @@ async def handle_update(update: dict, sessions: dict) -> None:
 
     low = text.lower()
     if low.startswith("/family") or low.strip() == "семья":
-        await _send(chat_id, _family_view(chat_id, sessions))
+        await _run_feature(chat_id, "family", sessions)
+        return
+    if any(w in low for w in ("граф здоровья", "карта здоровья", "график здоровья")):
+        await _run_feature(chat_id, "graph", sessions)
+        return
+    if "запис" in low:
+        # Заявка детерминированная (слоты не выдумываем) + кнопка Google Календаря.
+        await _run_feature(chat_id, "book", sessions, text=text)
         return
 
     m_switch = re.match(r"^(?:/use|план)\s*(\d+)\s*$", low.strip())

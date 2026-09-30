@@ -13,8 +13,8 @@ def run(coro):
 class FakeSend:
     def __init__(self, monkeypatch):
         self.sent = []
-        async def _f(chat_id, text):
-            self.sent.append((chat_id, text))
+        async def _f(chat_id, text, markup=None):
+            self.sent.append((chat_id, text, markup))
         monkeypatch.setattr(tg, "_send", _f)
 
 
@@ -249,3 +249,58 @@ def test_prep_checklist_format(monkeypatch):
     body = fake.sent[-1][1]
     assert "Чек-лист подготовки" in body and "☐" in body and "натощак" in body.lower()
     assert "не диагноз" in body
+
+
+# ---------- P3: кнопки, граф здоровья, Google Календарь ----------
+
+def cb(chat_id, data):
+    return {"callback_query": {"id": "cb1", "data": data,
+            "message": {"chat": {"id": chat_id}}}}
+
+
+def test_bind_sends_menu_buttons(monkeypatch):
+    fake = FakeSend(monkeypatch)
+    tg.CHATS.clear(); tg.FAMILY.clear()
+    sessions = {"s1": UserIntakeData(state_version=1, age=42, gender=Gender.male)}
+    run(tg.handle_update(upd(900, "/start s1"), sessions))
+    markup = fake.sent[-1][2]
+    assert markup and "inline_keyboard" in markup
+    labels = [b["text"] for row in markup["inline_keyboard"] for b in row]
+    assert any("Граф здоровья" in x for x in labels) and any("Записаться" in x for x in labels)
+
+
+def test_callback_buttons_run_features(monkeypatch):
+    fake = FakeSend(monkeypatch)
+    tg.CHATS.clear(); tg.FAMILY.clear()
+    sessions = {"s1": UserIntakeData(state_version=1, age=42, gender=Gender.male)}
+    run(tg.handle_update(upd(901, "/start s1"), sessions))
+    run(tg.handle_update(cb(901, "cmd:graph"), sessions))
+    body = fake.sent[-1][1]
+    assert "граф здоровья" in body.lower() and "🔴" in body and "✅" in body
+    assert "не диагноз" in body
+    run(tg.handle_update(cb(901, "cmd:plan"), sessions))
+    assert "Ваш чекап-план (42 лет, мужчина)" in fake.sent[-1][1]
+    run(tg.handle_update(cb(901, "cmd:prep"), sessions))
+    assert "Чек-лист подготовки" in fake.sent[-1][1]
+
+
+def test_health_graph_text_is_engine_grounded():
+    intake = UserIntakeData(state_version=1, age=42, gender=Gender.male)
+    out = tg.health_graph(tg.build_response(intake))
+    assert out.startswith("🩺") and "ДСМ-174/2020" in out
+    assert "закрыто:" in out and "срок подошёл:" in out
+
+
+def test_booking_with_window_adds_gcal_button(monkeypatch):
+    fake = FakeSend(monkeypatch)
+    tg.CHATS.clear(); tg.FAMILY.clear()
+    sessions = {"s1": UserIntakeData(state_version=1, age=42, gender=Gender.male)}
+    run(tg.handle_update(upd(902, "/start s1"), sessions))
+    run(tg.handle_update(cb(902, "cmd:book"), sessions, ))
+    # через кнопку без текста — окна нет, кнопки-меню есть
+    assert fake.sent[-1][2] is not None
+    run(tg.handle_update(upd(902, "записаться вечером"), sessions))
+    markup = fake.sent[-1][2]
+    urls = [b.get("url", "") for row in (markup or {}).get("inline_keyboard", []) for b in row]
+    assert any("calendar.google.com/calendar/render" in u for u in urls)
+    assert any("Asia%2FAlmaty" in u or "Asia/Almaty" in u for u in urls)
