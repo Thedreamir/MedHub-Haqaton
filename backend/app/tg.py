@@ -11,12 +11,16 @@ import asyncio
 import os
 import re
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from urllib.parse import quote
+
+import json
 
 import httpx
 
 from .engine import build_response
+from .graphimg import render_graph_png
+from .report import build_report_pdf
 from .llm import keyword_extract
 from .schemas import CheckupPackageResponse, UserIntakeData
 from .store import PersistedDict
@@ -50,6 +54,72 @@ async def _send(chat_id: int, text: str, markup: dict | None = None) -> None:
         await c.post(f"{_API}{tok}/sendMessage", json=payload)
 
 
+async def _send_photo(chat_id: int, png: bytes, caption: str,
+                      markup: dict | None = None) -> bool:
+    """Фото (граф здоровья). False -> текстовый фолбэк у вызывающего."""
+    tok = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    if not tok:
+        return False
+    try:
+        async with httpx.AsyncClient(timeout=20) as c:
+            r = await c.post(f"{_API}{tok}/sendPhoto",
+                             data={"chat_id": chat_id, "caption": caption,
+                                   "reply_markup": json.dumps(markup or {})},
+                             files={"photo": ("graph.png", png, "image/png")})
+            return r.status_code == 200
+    except Exception:
+        return False
+
+
+async def _send_document(chat_id: int, data: bytes, filename: str, caption: str,
+                         markup: dict | None = None) -> bool:
+    tok = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    if not tok:
+        return False
+    try:
+        async with httpx.AsyncClient(timeout=30) as c:
+            r = await c.post(f"{_API}{tok}/sendDocument",
+                             data={"chat_id": chat_id, "caption": caption,
+                                   "reply_markup": json.dumps(markup or {})},
+                             files={"document": (filename, data, "application/pdf")})
+            return r.status_code == 200
+    except Exception:
+        return False
+
+
+async def _react(chat_id: int, message_id: int, emoji: str) -> None:
+    """Реакция на сообщение юзера: fire-and-forget, ошибки глотаем."""
+    tok = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    if not tok or not message_id:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=10) as c:
+            await c.post(f"{_API}{tok}/setMessageReaction",
+                         json={"chat_id": chat_id, "message_id": message_id,
+                               "reaction": [{"type": "emoji", "emoji": emoji}]})
+    except Exception:
+        pass
+
+
+def _pick_reaction(text: str) -> str | None:
+    """Эмодзи по контексту сообщения. None - без реакции (не спамим)."""
+    low = text.lower().strip()
+    if not low:
+        return None
+    if any(w in low for w in ("спасибо", "сэнкс", "благодар", "рахмет")):
+        return "❤️"
+    if any(w in low for w in _GREET_WORDS):
+        return "🔥"
+    if any(w in low for w in _SYMPTOM):
+        return "🫡"
+    if "запис" in low:
+        return "👏"
+    first = low.split()[0]
+    if low.endswith("?") or first in ("как", "что", "когда", "почему", "зачем",
+                                      "сколько", "где", "можно"):
+        return "🤔"
+    return None
+
 async def _answer_cb(cb_id: str) -> None:
     tok = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     if not tok:
@@ -66,6 +136,8 @@ MENU = {"inline_keyboard": [
      {"text": "⏰ Скрининги", "callback_data": "cmd:recall"}],
     [{"text": "👨‍👩‍👧 Семья", "callback_data": "cmd:family"},
      {"text": "🗓 Записаться", "callback_data": "cmd:book"}],
+    [{"text": "👨‍⚕️ К врачу", "callback_data": "cmd:consult"},
+     {"text": "📄 План в PDF", "callback_data": "cmd:pdf"}],
     [{"text": "📝 Пройти анкету", "url": "https://checkup-intelligence.vercel.app"}],
 ]}
 
@@ -297,6 +369,10 @@ async def reminder_loop(sessions: dict) -> None:
                     await remind_once(chat_id, intake)
                 except Exception:
                     continue  # одна неудачная отправка не останавливает цикл
+        try:
+            await my_reminders_tick()
+        except Exception:
+            pass
 
 
 # ---------- Живой диалог: бесплатная Qwen через OpenRouter (fallback = детерминированный) ----------
@@ -310,7 +386,7 @@ _TG_MODELS = [m.strip() for m in os.environ.get(
 _SYSTEM = (
     "Ты Primey — живой, тёплый и немного дерзкий health-напарник пользователя в Telegram "
     "от клиники PRIME. Общайся как заботливый друг, который разбирается в чекапах: коротко "
-    "(2–8 строк), по-русски, живыми фразами, с лёгкими уместными эмодзи. Иногда задавай один "
+    "(2–5 строк), по-русски, живыми фразами, с лёгкими уместными эмодзи. Иногда задавай один "
     "человеческий уточняющий вопрос («как самочувствие сегодня?») — но не в каждом ответе. "
     "ЖЁСТКИЕ РАМКИ: факты — ТОЛЬКО из карточки плана ниже: цены, состав, даты и телефоны не "
     "выдумывай и не округляй. Не ставь диагнозы, не обещай результат лечения, не пугай. Если "
@@ -437,10 +513,7 @@ def render_plan(intake: UserIntakeData, result: CheckupPackageResponse) -> str:
         return "\n".join(lines)
     for h in result.health_map:
         icon = _STATUS_ICON.get(h.status, "➡️")
-        word = _STATUS_WORD.get(h.status, h.status)
-        lines.append(f"{icon} {h.item} — {h.when} ({word})")
-        if h.why:
-            lines.append(f"    {h.why}")
+        lines.append(f"{icon} {h.item} — {h.when}")
     pkg = result.prime_package
     if pkg and pkg.price_kzt is not None:
         lines.append(f"💳 Пакет «{pkg.name}»: {_fmt(pkg.price_kzt)}"
@@ -490,15 +563,14 @@ _BIND_HINT = ("Путь один: анкета на платформе → «Н�
               "на странице результата → я привяжусь к вашему плану.")
 
 _SHOWCASE = (
-    "Что я умею после привязки:\n"
-    "📋 Мой план — весь чекап со статусами: что бесплатно по ОСМС (0 ₸), что в PRIME\n"
-    "✅ Чек-лист — как подготовиться к каждому анализу\n"
-    "🩺 Граф здоровья — ваши риски и сроки одной картинкой\n"
-    "⏰ Скрининги — что уже положено по приказу ДСМ-174/2020\n"
-    "👨‍👩‍👧 Семья — планы всей семьи в одном чате\n"
-    "🗓 Записаться — готовая заявка в клинику + напоминание в календарь\n"
-    "А ещё я ловлю красные флаги: опишите опасный симптом — мгновенно дам маршрут 103. "
-    "Это работает уже сейчас, без анкеты.")
+    "Что умею:\n"
+    "📋 план чекапа — что бесплатно по ОСМС, что в PRIME\n"
+    "✅ как подготовиться к анализам\n"
+    "🩺 граф здоровья одной картинкой\n"
+    "⏰ какие скрининги вам уже положены по приказу\n"
+    "👨‍👩‍👧 вся семья в одном чате\n"
+    "🗓 заявка в клинику + напоминание в календарь\n"
+    "🚨 красный флаг — мгновенный маршрут 103, работает уже сейчас")
 
 _GREET_WORDS = ("привет", "хай", "хей", "салем", "сәлем", "здравств", "hello", "hi", "добрый")
 _ASK_SKILLS = ("что ты умеешь", "что умеешь", "умеешь", "функци", "возможност", "меню",
@@ -645,6 +717,127 @@ def _gcal_markup(window: str | None) -> dict | None:
     return {"inline_keyboard": [[{"text": "🗓 Добавить в Google Календарь", "url": url}]]}
 
 
+# ---------- Консультация врача: заявка за 2 тапа, слоты не выдумываем ----------
+
+_CONSULT: dict = {}  # chat_id -> выбранное направление (in-memory, демо)
+_SPECS = ["Терапевт", "Кардиолог", "Эндокринолог", "Невролог"]
+_CONSULT_WINDOWS = [("☀️ утром", "утром"), ("🌤 днём", "днём"), ("🌆 вечером", "вечером")]
+
+
+def _consult_kb() -> dict:
+    rows = [[{"text": sp, "callback_data": f"cspec:{sp}"} for sp in _SPECS[i:i + 2]]
+            for i in range(0, len(_SPECS), 2)]
+    return {"inline_keyboard": rows}
+
+
+def _consult_window_kb() -> dict:
+    return {"inline_keyboard": [[{"text": label, "callback_data": f"cwin:{win}"}
+                                 for label, win in _CONSULT_WINDOWS]]}
+
+
+def consult_request(intake: UserIntakeData, spec: str, window: str) -> str:
+    """Готовая заявка на консультацию. Честно: время подтверждает контакт-центр."""
+    who = []
+    if intake.age:
+        who.append(f"{intake.age} лет")
+    if intake.gender:
+        who.append("мужчина" if intake.gender.value == "male" else "женщина")
+    about = (", ".join(who) + ". ") if who else ""
+    return ("Заявка на консультацию готова:\n"
+            f"«Здравствуйте! Хочу на консультацию: {spec}. {about}"
+            f"Удобное время: {window}. Подскажите ближайший приём.»\n\n"
+            "Отправьте на salem@primegc.kz или продиктуйте по +7 747 094 26 21 — "
+            "точное время подтвердит контакт-центр клиники.")
+
+
+def _spec_from_text(text: str) -> str | None:
+    low = text.lower()
+    for sp in _SPECS:
+        if sp.lower()[:7] in low:
+            return sp
+    return None
+
+
+# ---------- Свои напоминания: «напоминай пить таблетки в 9:00» ----------
+
+MY_REMINDERS: PersistedDict = PersistedDict("my_reminders")  # chat_id -> list[dict]
+_ALMATY = timezone(timedelta(hours=5))
+
+
+def _reminders(chat_id: int) -> list:
+    return list(MY_REMINDERS.get(chat_id, []))
+
+
+def _save_reminders(chat_id: int, items: list) -> None:
+    MY_REMINDERS[chat_id] = items
+
+
+def parse_reminder(text: str):
+    """«напоминай <что> в 9:00» (ежедневно) | «напомни через 5 минут <что>» (разово)."""
+    low = text.lower().strip()
+    if not low.startswith(("напоминай", "напомни")):
+        return None
+    m = re.match(r"^напомни(?:ай)?\s+через\s+(\d+)\s*мин\w*\s+(.+)$", low)
+    if m:
+        fire = datetime.now(_ALMATY) + timedelta(minutes=int(m.group(1)))
+        return {"kind": "once", "fire_at": fire.isoformat(), "text": m.group(2).strip()}
+    m = re.match(r"^напомни(?:ай)?\s+(.+?)\s+в\s*(\d{1,2})[:.](\d{2})\s*$", low)
+    if m and 0 <= int(m.group(2)) <= 23 and 0 <= int(m.group(3)) <= 59:
+        return {"kind": "daily", "hh": int(m.group(2)), "mm": int(m.group(3)),
+                "text": m.group(1).strip()}
+    return {"kind": "help"}
+
+
+def _reminder_confirm(item: dict) -> str:
+    if item["kind"] == "once":
+        t = datetime.fromisoformat(item["fire_at"]).strftime("%H:%M")
+        return (f"Готово — напомню сегодня в {t}: «{item['text']}». "
+                "Список: «напоминания».")
+    return (f"Готово — буду напоминать каждый день в {item['hh']:02d}:{item['mm']:02d}: "
+            f"«{item['text']}». Список: «напоминания».")
+
+
+def _reminders_view(chat_id: int) -> str:
+    items = _reminders(chat_id)
+    if not items:
+        return ("Своих напоминаний пока нет. Добавьте так:\n"
+                "«напоминай пить таблетки в 9:00» — каждый день\n"
+                "«напомни через 30 минут измерить давление» — один раз.")
+    lines = []
+    for i, it in enumerate(items, 1):
+        when = (f"каждый день в {it['hh']:02d}:{it['mm']:02d}" if it["kind"] == "daily"
+                else "сегодня в " + datetime.fromisoformat(it["fire_at"]).strftime("%H:%M"))
+        lines.append(f"{i}. {it['text']} — {when}")
+    return ("Ваши напоминания:\n" + "\n".join(lines) +
+            "\n\nУбрать: «удали напоминание N». Добавить: «напоминай … в 9:00».")
+
+
+async def my_reminders_tick() -> None:
+    """Из reminder_loop: стреляет разовые и ежедневные напоминания."""
+    now = datetime.now(_ALMATY)
+    for chat_id in list(MY_REMINDERS.keys()):
+        items = _reminders(chat_id)
+        keep = []
+        for it in items:
+            fire = False
+            if it["kind"] == "once":
+                fire = now >= datetime.fromisoformat(it["fire_at"])
+            else:
+                stamp = now.strftime("%Y-%m-%d %H:%M")
+                fire = (now.hour == it["hh"] and now.minute == it["mm"]
+                        and it.get("last_fired") != stamp)
+            if fire:
+                it["last_fired"] = now.strftime("%Y-%m-%d %H:%M")
+                try:
+                    await _send(chat_id, f"⏰ Напоминание: {it['text']}", markup=MENU)
+                except Exception:
+                    pass
+            if it["kind"] == "daily" or not fire:
+                keep.append(it)
+        if keep != items:
+            _save_reminders(chat_id, keep)
+
+
 async def _run_feature(chat_id: int, cmd: str, sessions: dict, text: str = "") -> None:
     """Единая точка для кнопок и текстовых команд."""
     if cmd == "family":
@@ -668,9 +861,25 @@ async def _run_feature(chat_id: int, cmd: str, sessions: dict, text: str = "") -
     elif cmd == "prep":
         await _send(chat_id, _prep_checklist_text(result), markup=MENU)
     elif cmd == "graph":
-        await _send(chat_id, health_graph(result), markup=MENU)
+        caption = ("Твой граф здоровья одной картинкой.\n"
+                   "Это не диагноз — сроки по ДСМ-174/2020, подтверждает врач.")
+        ok = await _send_photo(chat_id, render_graph_png(result, intake),
+                               caption, markup=MENU)
+        if not ok:
+            await _send(chat_id, health_graph(result), markup=MENU)
     elif cmd == "recall":
         await _send(chat_id, _recall_text(result), markup=MENU)
+    elif cmd == "pdf":
+        ok = await _send_document(chat_id, build_report_pdf(intake, result),
+                                  "checkup-plan-prime.pdf",
+                                  "Твой чекап-план одним PDF — покажи врачу.",
+                                  markup=MENU)
+        if not ok:
+            await _send(chat_id, "PDF-отчёт: платформа → страница результата → "
+                                 "«Скачать отчёт (PDF)».", markup=MENU)
+    elif cmd == "consult":
+        await _send(chat_id, "К кому записаться? Выбери направление — соберу "
+                             "готовую заявку в клинику:", markup=_consult_kb())
     elif cmd == "book":
         await _send(chat_id, booking_request(intake, result, text),
                     markup=_gcal_markup(_time_window(text)) or MENU)
@@ -685,6 +894,20 @@ async def handle_update(update: dict, sessions: dict) -> None:
             await _answer_cb(cb["id"])
         if chat_id is not None and data.startswith("cmd:"):
             await _run_feature(chat_id, data[4:], sessions)
+        elif chat_id is not None and data.startswith("cspec:"):
+            _CONSULT[chat_id] = data[6:]
+            await _send(chat_id, f"{data[6:]} — отлично. Когда удобно?",
+                        markup=_consult_window_kb())
+        elif chat_id is not None and data.startswith("cwin:"):
+            sid = CHATS.get(chat_id)
+            intake = sessions.get(sid) if sid else None
+            spec = _CONSULT.pop(chat_id, "Терапевт")
+            window = data[5:]
+            if intake is None:
+                await _send(chat_id, _BIND_HINT, markup=MENU)
+            else:
+                await _send(chat_id, consult_request(intake, spec, window),
+                            markup=_gcal_markup(window) or MENU)
         return
 
     msg = update.get("message") or {}
@@ -704,11 +927,16 @@ async def handle_update(update: dict, sessions: dict) -> None:
         intake = sessions.get(sid) if sid else None
         if intake is None:
             await _send(chat_id,
-                        "Сәлем! Добро пожаловать в PRIME — я ваш персональный агент чекапов.\n\n"
-                        + _SHOWCASE + "\n\n"
-                        "Начните с кнопки «📝 Пройти анкету» — после неё нажмите "
-                        "«Напоминания в Telegram» на странице результата, и я привяжусь "
-                        "к вашему плану. Дальше я веду сам 👇", markup=MENU)
+                        "Добрый вечер! Я ваш ИИ-агент здоровья от PRIME. "
+                        "Соберу чекап под вас, покажу, что бесплатно по ОСМС, "
+                        "и запишу в клинику. Две минуты анкеты — и я за работу 👇",
+                        markup={"inline_keyboard": [[
+                            {"text": "📝 Пройти анкету",
+                             "url": "https://checkup-intelligence.vercel.app"}]]})
+            await _send(chat_id, _SHOWCASE + "\n\n"
+                        "Жмите «📝 Пройти анкету», а на странице результата — "
+                        "«Напоминания в Telegram»: я привяжусь к плану и поведу сам 👇",
+                        markup=MENU)
             return
         CHATS[chat_id] = sid
         fam = _family_list(chat_id)
@@ -751,6 +979,12 @@ async def handle_update(update: dict, sessions: dict) -> None:
                     "сейчас — единый номер 103.")
         return
 
+    # Реакция по контексту (не на команды, не на красные флаги).
+    if not text.startswith("/"):
+        emoji = _pick_reaction(text)
+        if emoji:
+            asyncio.create_task(_react(chat_id, msg.get("message_id") or 0, emoji))
+
     low = text.lower()
     if low.startswith("/family") or low.strip() == "семья":
         await _run_feature(chat_id, "family", sessions)
@@ -761,6 +995,43 @@ async def handle_update(update: dict, sessions: dict) -> None:
     if "запис" in low:
         # Заявка детерминированная (слоты не выдумываем) + кнопка Google Календаря.
         await _run_feature(chat_id, "book", sessions, text=text)
+        return
+
+    if low.strip() in ("напоминания", "мои напоминания"):
+        await _send(chat_id, _reminders_view(chat_id), markup=MENU)
+        return
+    m_del = re.match(r"^удали\s+напоминание\s+(\d+)$", low.strip())
+    if m_del:
+        items = _reminders(chat_id)
+        n = int(m_del.group(1))
+        if 1 <= n <= len(items):
+            gone = items.pop(n - 1)
+            _save_reminders(chat_id, items)
+            await _send(chat_id, f"Убрал: «{gone['text']}».", markup=MENU)
+        else:
+            await _send(chat_id, "Нет напоминания с таким номером — список: «напоминания».")
+        return
+    if low.startswith(("напоминай", "напомни ")):
+        item = parse_reminder(text)
+        if item and item["kind"] == "help":
+            await _send(chat_id, "Не понял время. Так: «напоминай пить таблетки в 9:00» "
+                                 "или «напомни через 30 минут измерить давление».")
+        elif item:
+            items = _reminders(chat_id)
+            items.append(item)
+            _save_reminders(chat_id, items)
+            await _send(chat_id, _reminder_confirm(item), markup=MENU)
+        return
+    if "консультац" in low or "к врачу" in low or low.strip() == "врач":
+        spec = _spec_from_text(text)
+        window = _time_window(text)
+        sid = CHATS.get(chat_id)
+        intake = sessions.get(sid) if sid else None
+        if spec and window and intake is not None:
+            await _send(chat_id, consult_request(intake, spec, window),
+                        markup=_gcal_markup(window) or MENU)
+        else:
+            await _run_feature(chat_id, "consult", sessions)
         return
 
     m_switch = re.match(r"^(?:/use|план)\s*(\d+)\s*$", low.strip())
