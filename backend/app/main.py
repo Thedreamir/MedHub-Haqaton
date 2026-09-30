@@ -1,3 +1,4 @@
+import asyncio
 import os
 import uuid
 from datetime import date, timedelta
@@ -133,3 +134,8 @@ async def tg_webhook(request: Request):
         return {"ok": True, "configured": False}
     await tg.handle_update(await request.json(), SESSIONS)
     return {"ok": True}
+
+@app.on_event("startup")
+async def _start_tg_reminders():
+    if tg.configured():
+        asyncio.create_task(tg.reminder_loop(SESSIONS))

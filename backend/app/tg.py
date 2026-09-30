@@ -1,11 +1,15 @@
 """Telegram-бот: живой ассистент поверх анкеты пользователя.
 
 Deep-link t.me/<bot>?start=<session_id> привязывает чат к сессии анкеты;
-бот отвечает по СВОЕМУ пакету/маршруту/карте здоровья и шлёт напоминания.
+бот отвечает по СВОЕМУ пакету/маршруту/карте здоровья, шлёт напоминания
+о повторных скринингах и ведёт «Зелёный навигатор»: жалоба -> срочность ->
+ОСМС vs PRIME -> готовый текст заявки в клинику.
 Красный флаг в любом сообщении -> мгновенный маршрут 103 (тот же keyword-floor,
 что и в веб-чате). Токен живёт только в env TELEGRAM_BOT_TOKEN, никогда не в репо.
 """
+import asyncio
 import os
+import time
 
 import httpx
 
@@ -90,11 +94,122 @@ def _answer(text: str, intake: UserIntakeData, result: CheckupPackageResponse) -
         if prep:
             return "\n".join(f"{s.block}: {s.details}" for s in prep)
         return "Подготовку подтверждает клиника при записи: +7 747 094 26 21."
-    lines = _plan_lines(intake, result)
-    lines.append("Спросите про цену, состав пакета, маршрут дня, подготовку "
-                 "или повторные скрининги — отвечу по вашей анкете.")
-    return "\n".join(lines)
+    # Свободный текст без явной темы — это жалоба/контекст: Зелёный навигатор.
+    return green_navigator(text, result)
 
+
+
+# ---------- Зелёный навигатор: жалоба -> срочность -> ОСМС vs PRIME -> заявка ----------
+
+_URGENT_WORDS = (
+    "высокая температур", "температура 39", "температура 40", "сильная боль",
+    "острая боль", "не проходит", "кровь в", "кровотеч", "рвота кров",
+    "потерял сознание", "обморок", "удушье", "не могу дышать",
+)
+
+# жалоба -> (ключевые слова, позиция бесплатного скрининга ОСМС по ДСМ-174/2020)
+_OSMS_ROUTES = [
+    (("сердц", "давлен", "гипертон", "пульс"),
+     "скрининг сердечно-сосудистых заболеваний (АД, ЭКГ, липидный профиль)"),
+    (("сахар", "диабет", "жажда", "глюкоз"),
+     "скрининг сахарного диабета (глюкоза / HbA1c)"),
+    (("груд", "молочн", "уплотнен"),
+     "скрининг рака молочной железы (маммография, женщины 40–70)"),
+    (("шейк", "цервик", "пап-тест", "мазок"),
+     "скрининг рака шейки матки (цитология, женщины 30–70)"),
+    (("кишеч", "стул", "колоноскоп"),
+     "скрининг колоректального рака (анализ кала на скрытую кровь, 50–70)"),
+    (("печен", "гепатит"),
+     "скрининг вирусных гепатитов B и C"),
+    (("лёгк", "легк", "кашель кур"),
+     "скрининг рака лёгкого (низкодозная КТ, курящие 50–70)"),
+    (("зрени", "глаз", "глауком"),
+     "измерение внутриглазного давления (скрининг глаукомы)"),
+]
+
+
+def green_navigator(text: str, result: CheckupPackageResponse) -> str:
+    """Свободная жалоба -> маршрут: срочность, ОСМС vs PRIME, готовый текст заявки."""
+    t = text.lower()
+    urgent = any(w in t for w in _URGENT_WORDS)
+    osms_hit = next((route for keys, route in _OSMS_ROUTES
+                     if any(k in t for k in keys)), None)
+
+    if urgent:
+        urgency = ("Судя по описанию, откладывать не стоит: обратитесь к врачу "
+                   "в ближайшие 1–2 дня, не дожидаясь планового чекапа.")
+    else:
+        urgency = ("Признаков неотложного состояния не вижу — это можно решать "
+                   "в плановом порядке.")
+
+    if osms_hit:
+        route = (f"Маршрут ОСМС (0 ₸): {osms_hit} — делается бесплатно по приказу "
+                 "ДСМ-174/2020. Направление даёт участковый врач в вашей поликлинике, "
+                 "запись через eGov / damumed.kz.")
+        service = osms_hit.split(" (")[0]
+    else:
+        pkg = result.prime_package
+        if pkg:
+            price = _fmt(pkg.price_kzt) if pkg.price_kzt is not None else "цена уточняется"
+            route = (f"Маршрут PRIME (платно): под бесплатный скрининг ОСМС это не "
+                     f"попадает. В клинике PRIME можно пройти ваш пакет «{pkg.name}» "
+                     f"({price}) или точечную консультацию врача.")
+        else:
+            route = ("Маршрут PRIME (платно): под бесплатный скрининг ОСМС это не "
+                     "попадает. В клинике PRIME доступна консультация врача и "
+                     "диагностика по прайсу.")
+        service = "консультацию врача" + (f" / пакет «{result.prime_package.name}»"
+                                          if result.prime_package else "")
+
+    request_text = (
+        "Готовый текст заявки (отправьте на salem@primegc.kz или продиктуйте "
+        "по +7 747 094 26 21):\n"
+        f"«Здравствуйте! Хочу записаться: {service}. "
+        f"Повод: {text.strip()[:200]}. Подскажите ближайшее время приёма.»")
+    return f"Зелёный навигатор:\n\n{urgency}\n\n{route}\n\n{request_text}"
+
+
+# ---------- Напоминания из карты здоровья ----------
+
+_REMIND_INTERVAL_SEC = 6 * 3600          # как часто пересматривать карту
+_REMIND_RESEND_SEC = 72 * 3600           # не чаще, чем раз в 3 суток по тем же позициям
+_LAST_REMIND: dict[int, float] = {}      # chat_id -> ts последнего напоминания
+
+
+def due_screenings(result: CheckupPackageResponse) -> list[str]:
+    return [f"• {h.item} — {h.when}" for h in result.health_map
+            if h.status in ("due", "next_step")]
+
+
+async def remind_once(chat_id: int, intake: UserIntakeData) -> bool:
+    """Шлёт напоминание о повторных скринингах, если оно по срокам. True = отправлено."""
+    due = due_screenings(build_response(intake))
+    if not due:
+        return False
+    last = _LAST_REMIND.get(chat_id, 0)
+    if time.time() - last < _REMIND_RESEND_SEC:
+        return False
+    _LAST_REMIND[chat_id] = time.time()
+    await _send(chat_id,
+                "Напоминание из карты здоровья — по приказу ДСМ-174/2020 вам по срокам "
+                "положено:\n" + "\n".join(due) +
+                "\n\nСкрининги из списка бесплатны по ОСМС (направление — в поликлинике), "
+                "остальное можно закрыть в PRIME: +7 747 094 26 21.")
+    return True
+
+
+async def reminder_loop(sessions: dict) -> None:
+    """Best-effort цикл напоминаний: живёт, пока жив процесс (бесплатный Render
+    засыпает в простое — напоминания доезжают, пока сервис активен)."""
+    while True:
+        await asyncio.sleep(_REMIND_INTERVAL_SEC)
+        for chat_id, sid in list(CHATS.items()):
+            intake = sessions.get(sid)
+            if intake is not None:
+                try:
+                    await remind_once(chat_id, intake)
+                except Exception:
+                    continue  # одна неудачная отправка не останавливает цикл
 
 _BIND_HINT = ("Сначала пройдите анкету на сайте конструктора и нажмите "
               "«Напоминания в Telegram» на странице результата — бот привяжется "
@@ -119,11 +234,15 @@ async def handle_update(update: dict, sessions: dict) -> None:
             return
         CHATS[chat_id] = sid
         result = build_response(intake)
+        due = due_screenings(result)
+        extra = ("\n\nПо срокам из карты здоровья уже положено:\n" + "\n".join(due)
+                 ) if due else ""
         await _send(chat_id,
                     "Готово — привязал чат к вашему чекап-плану.\n"
-                    + _summary(intake, result)
+                    + _summary(intake, result) + extra
                     + "\n\nНапомню о повторных скринингах по срокам из карты здоровья. "
-                      "Спросите про цену, состав, маршрут или подготовку.")
+                      "Спросите про цену, состав, маршрут или подготовку — или просто "
+                      "опишите жалобу: Зелёный навигатор подскажет маршрут (ОСМС или PRIME).")
         return
 
     # Красный флаг не ждёт привязки: тот же keyword-floor, что и на сайте.

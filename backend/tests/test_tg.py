@@ -62,3 +62,41 @@ def test_unbound_plain_text_gives_hint(monkeypatch):
     tg.CHATS.clear()
     run(tg.handle_update(upd(999, "что входит в пакет?"), {}))
     assert "анкет" in fake.sent[0][1].lower()
+
+
+def _result(age=42, gender=Gender.male):
+    from app.engine import build_response
+    return build_response(UserIntakeData(state_version=1, age=age, gender=gender))
+
+
+def test_navigator_osms_route():
+    out = tg.green_navigator("скачет давление, побаливает сердце", _result())
+    assert "ОСМС" in out and "0 ₸" in out and "сердечно-сосудистых" in out
+    assert "salem@primegc.kz" in out and "+7 747 094 26 21" in out
+    assert "Здравствуйте! Хочу записаться" in out
+
+
+def test_navigator_prime_route_for_non_osms_complaint():
+    out = tg.green_navigator("хочу проверить щитовидку и гормоны", _result())
+    assert "PRIME" in out and "467 100" in out and "ОСМС это не попадает" in out.replace("под бесплатный скрининг ОСМС это не попадает", "ОСМС это не попадает")
+    assert "Здравствуйте! Хочу записаться" in out
+
+
+def test_navigator_urgent_complaint():
+    out = tg.green_navigator("сильная боль в боку уже три дня не проходит", _result())
+    assert "ближайшие 1–2 дня" in out
+
+
+def test_navigator_calm_for_routine():
+    out = tg.green_navigator("иногда тянет спину после работы", _result())
+    assert "плановом порядке" in out
+
+
+def test_due_screenings_and_remind_once(monkeypatch):
+    fake = FakeSend(monkeypatch)
+    tg._LAST_REMIND.clear()
+    intake = UserIntakeData(state_version=1, age=42, gender=Gender.male)
+    assert tg.due_screenings(_result())              # у мужчины 42 есть due-позиции
+    assert run(tg.remind_once(777, intake)) is True
+    assert "ДСМ-174/2020" in fake.sent[0][1]
+    assert run(tg.remind_once(777, intake)) is False  # анти-спам: повторно не шлём
