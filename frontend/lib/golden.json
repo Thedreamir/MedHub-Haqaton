@@ -1,0 +1,497 @@
+[
+ {
+  "intake": {
+   "age": 42,
+   "gender": "male",
+   "symptoms": [
+    "fatigue",
+    "gi"
+   ],
+   "family_history": [
+    "diabetes"
+   ],
+   "chronic_conditions": [],
+   "red_flags": [],
+   "is_pregnant": null,
+   "child_age_months": null,
+   "state_version": 1
+  },
+  "assistant_message": "Анкета собрана — справа ваш персональный план: что положено по ОСМС бесплатно, чем это усиливает пакет PRIME и как пройдёт один день в клинике.",
+  "llm_status": "degraded_keyword",
+  "result": {
+   "is_emergency": false,
+   "emergency_banner": null,
+   "osms_free_tests": [
+    {
+     "name": "Приём медсестры/фельдшера",
+     "why": "Скрининг АГ, ИБС, сахарного диабета, глаукомы — положен по приказу (0 ₸)",
+     "payment": "free_gobmp",
+     "source": "DSM174 прил. 1 п.1, прил. 2 п.1",
+     "needs_doctor_validation": false
+    },
+    {
+     "name": "ЛПНП",
+     "why": "Скрининг АГ, ИБС, сахарного диабета, глаукомы — положен по приказу (0 ₸)",
+     "payment": "free_gobmp",
+     "source": "DSM174 прил. 1 п.1, прил. 2 п.1",
+     "needs_doctor_validation": false
+    },
+    {
+     "name": "Триглицериды",
+     "why": "Скрининг АГ, ИБС, сахарного диабета, глаукомы — положен по приказу (0 ₸)",
+     "payment": "free_gobmp",
+     "source": "DSM174 прил. 1 п.1, прил. 2 п.1",
+     "needs_doctor_validation": false
+    },
+    {
+     "name": "Гликированный гемоглобин (HbA1c)",
+     "why": "Скрининг АГ, ИБС, сахарного диабета, глаукомы — положен по приказу (0 ₸)",
+     "payment": "free_gobmp",
+     "source": "DSM174 прил. 1 п.1, прил. 2 п.1",
+     "needs_doctor_validation": false
+    },
+    {
+     "name": "Внутриглазное давление",
+     "why": "Скрининг АГ, ИБС, сахарного диабета, глаукомы — положен по приказу (0 ₸)",
+     "payment": "free_gobmp",
+     "source": "DSM174 прил. 1 п.1, прил. 2 п.1",
+     "needs_doctor_validation": false
+    },
+    {
+     "name": "Приём терапевта/ВОП",
+     "why": "Скрининг АГ, ИБС, сахарного диабета, глаукомы — положен по приказу (0 ₸)",
+     "payment": "free_gobmp",
+     "source": "DSM174 прил. 1 п.1, прил. 2 п.1",
+     "needs_doctor_validation": false
+    },
+    {
+     "name": "Приём медсестры/фельдшера (кровь из пальца)",
+     "why": "Скрининг гепатитов B и C — положен по приказу (0 ₸)",
+     "payment": "free_gobmp",
+     "source": "DSM174 прил. 1 п.6 и прил. 2 п.6 в ред. приказа № 75 от 10.07.2026",
+     "needs_doctor_validation": false
+    },
+    {
+     "name": "Экспресс-тест на антитела к гепатиту C (anti-HCV)",
+     "why": "Скрининг гепатитов B и C — положен по приказу (0 ₸)",
+     "payment": "free_gobmp",
+     "source": "DSM174 прил. 1 п.6 и прил. 2 п.6 в ред. приказа № 75 от 10.07.2026",
+     "needs_doctor_validation": false
+    },
+    {
+     "name": "Экспресс-тест на HBsAg (гепатит B)",
+     "why": "Скрининг гепатитов B и C — положен по приказу (0 ₸)",
+     "payment": "free_gobmp",
+     "source": "DSM174 прил. 1 п.6 и прил. 2 п.6 в ред. приказа № 75 от 10.07.2026",
+     "needs_doctor_validation": false
+    }
+   ],
+   "prime_package": {
+    "package_id": "prime_extended_m",
+    "name": "Мужской расширенный чекап (после 40)",
+    "price_kzt": 467100,
+    "composition_note": null,
+    "discrepancy_note": null,
+    "tests": [
+     {
+      "name": "Консультация уролога",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "Консультация офтальмолога",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "Гликированный гемоглобин",
+      "why": "пересекается со скринингом — по ОСМС 0 ₸",
+      "payment": "free_gobmp",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "ПСА общий и свободный",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "УЗИ предстательной железы (ТРУЗИ) и мошонки",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "УЗИ брюшной полости и щитовидной железы",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     }
+    ]
+   },
+   "prime_addon_tests": [
+    {
+     "name": "Витамин D",
+     "why": "по жалобам/анамнезу — правило клиники",
+     "payment": "paid_prime",
+     "source": "CLINIC_RULE",
+     "needs_doctor_validation": true
+    },
+    {
+     "name": "Витамин B12",
+     "why": "по жалобам/анамнезу — правило клиники",
+     "payment": "paid_prime",
+     "source": "CLINIC_RULE",
+     "needs_doctor_validation": true
+    },
+    {
+     "name": "Анализ на анемию",
+     "why": "по жалобам/анамнезу — правило клиники",
+     "payment": "paid_prime",
+     "source": "CLINIC_RULE",
+     "needs_doctor_validation": true
+    },
+    {
+     "name": "Гормоны щитовидной железы",
+     "why": "по жалобам/анамнезу — правило клиники",
+     "payment": "paid_prime",
+     "source": "CLINIC_RULE",
+     "needs_doctor_validation": true
+    },
+    {
+     "name": "Консультация эндокринолога",
+     "why": "по анамнезу: сахарный диабет",
+     "payment": "paid_prime",
+     "source": "ANAMNESIS_DRAFT",
+     "needs_doctor_validation": true
+    },
+    {
+     "name": "Консультация офтальмолога",
+     "why": "по анамнезу: глаукома",
+     "payment": "paid_prime",
+     "source": "ANAMNESIS_DRAFT",
+     "needs_doctor_validation": true
+    }
+   ],
+   "total_paid_kzt": 467100,
+   "itinerary_timeline": [
+    {
+     "order": 1,
+     "block": "День подготовки",
+     "time_window": null,
+     "title": "Подготовка к чекапу",
+     "details": "Анализы крови — строго натощак. Подготовку подтверждает клиника при записи."
+    },
+    {
+     "order": 2,
+     "block": "День визита",
+     "time_window": "8:00–16:00",
+     "title": "Чекап за один день",
+     "details": "Анализы натощак (кровь, моча) → УЗИ и функциональная диагностика (ЭКГ, ЭхоКГ, УЗДГ) → КТ / маммография → Консультации врачей → Эндоскопия под анестезией (гастро- + колоноскопия вместе) — последней"
+    },
+    {
+     "order": 3,
+     "block": "После визита",
+     "time_window": null,
+     "title": "Результаты и заключение",
+     "details": "Результаты — на следующий день. Заключение врача-куратора через 2–3 дня."
+    }
+   ],
+   "health_map": [
+    {
+     "item": "Чекап PRIME (демо, синтетические данные)",
+     "status": "done",
+     "when": "сегодня",
+     "why": "демо-срез карты здоровья",
+     "source": "DEMO"
+    },
+    {
+     "item": "Заключение врача-куратора",
+     "status": "next_step",
+     "when": "через 2–3 дня после визита",
+     "why": "итог маршрута",
+     "source": "PRIME"
+    },
+    {
+     "item": "Скрининг АГ, ИБС, сахарного диабета, глаукомы",
+     "status": "due",
+     "when": "повтор каждые 2 года",
+     "why": "периодичность по ДСМ-174/2020",
+     "source": "DSM174 прил. 1 п.1, прил. 2 п.1"
+    },
+    {
+     "item": "Скрининг цереброваскулярных заболеваний",
+     "status": "next_step",
+     "when": "положен с 50 лет по приказу",
+     "why": "возрастная сетка ДСМ-174/2020",
+     "source": "DSM174 прил. 1 п.2, прил. 2 п.4"
+    },
+    {
+     "item": "Скрининг колоректального рака",
+     "status": "next_step",
+     "when": "положен с 50 лет по приказу",
+     "why": "возрастная сетка ДСМ-174/2020",
+     "source": "DSM174 прил. 1 п.5, прил. 2 п.5"
+    },
+    {
+     "item": "Скрининг гепатитов B и C",
+     "status": "due",
+     "when": "повтор каждые 3 года",
+     "why": "периодичность по ДСМ-174/2020",
+     "source": "DSM174 прил. 1 п.6 и прил. 2 п.6 в ред. приказа № 75 от 10.07.2026"
+    },
+    {
+     "item": "Скрининг рака лёгкого",
+     "status": "next_step",
+     "when": "положен с 50 лет по приказу",
+     "why": "возрастная сетка ДСМ-174/2020",
+     "source": "DSM174 прил. 1 п.7 и прил. 2 п.7 (введены приказом № 75 от 10.07.2026)"
+    }
+   ],
+   "reminder": {
+    "channel": "ics",
+    "message_preview": "Завтра чекап PRIME: анализы строго натощак, вода можно. Начало в 8:00.",
+    "due_in": "повторный скрининг — по срокам из карты здоровья",
+    "demo": true
+   },
+   "booking_contact_phone": "+7 747 094 26 21",
+   "booking_contact_email": "salem@primegc.kz",
+   "disclaimer": "Опубликованный прайс. Финальную стоимость и состав подтверждает клиника PRIME.",
+   "not_diagnosis": "Не является медицинской диагностикой."
+  }
+ },
+ {
+  "intake": {
+   "age": 35,
+   "gender": "female",
+   "symptoms": [],
+   "family_history": [],
+   "chronic_conditions": [],
+   "red_flags": [],
+   "is_pregnant": null,
+   "child_age_months": null,
+   "state_version": 1
+  },
+  "assistant_message": "Анкета собрана — справа ваш персональный план: что положено по ОСМС бесплатно, чем это усиливает пакет PRIME и как пройдёт один день в клинике.",
+  "llm_status": "degraded_keyword",
+  "result": {
+   "is_emergency": false,
+   "emergency_banner": null,
+   "osms_free_tests": [
+    {
+     "name": "Приём медсестры/фельдшера (кровь из пальца)",
+     "why": "Скрининг гепатитов B и C — положен по приказу (0 ₸)",
+     "payment": "free_gobmp",
+     "source": "DSM174 прил. 1 п.6 и прил. 2 п.6 в ред. приказа № 75 от 10.07.2026",
+     "needs_doctor_validation": false
+    },
+    {
+     "name": "Экспресс-тест на антитела к гепатиту C (anti-HCV)",
+     "why": "Скрининг гепатитов B и C — положен по приказу (0 ₸)",
+     "payment": "free_gobmp",
+     "source": "DSM174 прил. 1 п.6 и прил. 2 п.6 в ред. приказа № 75 от 10.07.2026",
+     "needs_doctor_validation": false
+    },
+    {
+     "name": "Экспресс-тест на HBsAg (гепатит B)",
+     "why": "Скрининг гепатитов B и C — положен по приказу (0 ₸)",
+     "payment": "free_gobmp",
+     "source": "DSM174 прил. 1 п.6 и прил. 2 п.6 в ред. приказа № 75 от 10.07.2026",
+     "needs_doctor_validation": false
+    }
+   ],
+   "prime_package": {
+    "package_id": "prime_basic_f",
+    "name": "Женский базовый чекап (до 40 лет)",
+    "price_kzt": 358020,
+    "composition_note": null,
+    "discrepancy_note": null,
+    "tests": [
+     {
+      "name": "Консультация гинеколога",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "ЭКГ",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "Ферритин, железо, фолиевая кислота",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "УЗИ малого таза (трансвагинально)",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "УЗИ молочных желёз",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     }
+    ]
+   },
+   "prime_addon_tests": [
+    {
+     "name": "Консультация эндокринолога",
+     "why": "по анамнезу: сахарный диабет",
+     "payment": "paid_prime",
+     "source": "ANAMNESIS_DRAFT",
+     "needs_doctor_validation": true
+    },
+    {
+     "name": "Консультация офтальмолога",
+     "why": "по анамнезу: глаукома",
+     "payment": "paid_prime",
+     "source": "ANAMNESIS_DRAFT",
+     "needs_doctor_validation": true
+    }
+   ],
+   "total_paid_kzt": 358020,
+   "itinerary_timeline": [
+    {
+     "order": 1,
+     "block": "День подготовки",
+     "time_window": null,
+     "title": "Подготовка к чекапу",
+     "details": "Подготовку подтверждает клиника при записи."
+    },
+    {
+     "order": 2,
+     "block": "День визита",
+     "time_window": "8:00–16:00",
+     "title": "Чекап за один день",
+     "details": "Анализы натощак (кровь, моча) → УЗИ и функциональная диагностика (ЭКГ, ЭхоКГ, УЗДГ) → КТ / маммография → Консультации врачей → Эндоскопия под анестезией (гастро- + колоноскопия вместе) — последней"
+    },
+    {
+     "order": 3,
+     "block": "После визита",
+     "time_window": null,
+     "title": "Результаты и заключение",
+     "details": "Результаты — на следующий день. Заключение врача-куратора через 2–3 дня."
+    }
+   ],
+   "health_map": [
+    {
+     "item": "Чекап PRIME (демо, синтетические данные)",
+     "status": "done",
+     "when": "сегодня",
+     "why": "демо-срез карты здоровья",
+     "source": "DEMO"
+    },
+    {
+     "item": "Заключение врача-куратора",
+     "status": "next_step",
+     "when": "через 2–3 дня после визита",
+     "why": "итог маршрута",
+     "source": "PRIME"
+    },
+    {
+     "item": "Скрининг АГ, ИБС, сахарного диабета, глаукомы",
+     "status": "next_step",
+     "when": "положен с 40 лет по приказу",
+     "why": "возрастная сетка ДСМ-174/2020",
+     "source": "DSM174 прил. 1 п.1, прил. 2 п.1"
+    },
+    {
+     "item": "Скрининг рака молочной железы",
+     "status": "next_step",
+     "when": "положен с 40 лет по приказу",
+     "why": "возрастная сетка ДСМ-174/2020",
+     "source": "DSM174 прил. 1 п.3, прил. 2 п.2"
+    },
+    {
+     "item": "Скрининг рака шейки матки",
+     "status": "next_step",
+     "when": "положен с 38 лет по приказу",
+     "why": "возрастная сетка ДСМ-174/2020",
+     "source": "DSM174 прил. 1 п.4, прил. 2 п.3"
+    },
+    {
+     "item": "Скрининг колоректального рака",
+     "status": "next_step",
+     "when": "положен с 50 лет по приказу",
+     "why": "возрастная сетка ДСМ-174/2020",
+     "source": "DSM174 прил. 1 п.5, прил. 2 п.5"
+    },
+    {
+     "item": "Скрининг гепатитов B и C",
+     "status": "due",
+     "when": "повтор каждые 3 года",
+     "why": "периодичность по ДСМ-174/2020",
+     "source": "DSM174 прил. 1 п.6 и прил. 2 п.6 в ред. приказа № 75 от 10.07.2026"
+    },
+    {
+     "item": "Скрининг рака лёгкого",
+     "status": "next_step",
+     "when": "положен с 50 лет по приказу",
+     "why": "возрастная сетка ДСМ-174/2020",
+     "source": "DSM174 прил. 1 п.7 и прил. 2 п.7 (введены приказом № 75 от 10.07.2026)"
+    }
+   ],
+   "reminder": {
+    "channel": "ics",
+    "message_preview": "Завтра чекап PRIME: анализы строго натощак, вода можно. Начало в 8:00.",
+    "due_in": "повторный скрининг — по срокам из карты здоровья",
+    "demo": true
+   },
+   "booking_contact_phone": "+7 747 094 26 21",
+   "booking_contact_email": "salem@primegc.kz",
+   "disclaimer": "Опубликованный прайс. Финальную стоимость и состав подтверждает клиника PRIME.",
+   "not_diagnosis": "Не является медицинской диагностикой."
+  }
+ },
+ {
+  "intake": {
+   "age": 55,
+   "gender": "male",
+   "symptoms": [],
+   "family_history": [],
+   "chronic_conditions": [],
+   "red_flags": [
+    "chest_pain"
+   ],
+   "is_pregnant": null,
+   "child_age_months": null,
+   "state_version": 1
+  },
+  "assistant_message": "Я вижу симптомы, которые нельзя откладывать на плановый чекап. Пожалуйста, обратитесь за медицинской помощью сейчас — единый номер 103.",
+  "llm_status": "degraded_keyword",
+  "result": {
+   "is_emergency": true,
+   "emergency_banner": "Обнаружены признаки состояния, требующего немедленной медицинской помощи. Единый номер экстренных служб: 103. Подбор чекапа не выполняется.",
+   "osms_free_tests": [],
+   "prime_package": null,
+   "prime_addon_tests": [],
+   "total_paid_kzt": 0,
+   "itinerary_timeline": [],
+   "health_map": [],
+   "reminder": null,
+   "booking_contact_phone": "+7 747 094 26 21",
+   "booking_contact_email": "salem@primegc.kz",
+   "disclaimer": "Опубликованный прайс. Финальную стоимость и состав подтверждает клиника PRIME.",
+   "not_diagnosis": "Не является медицинской диагностикой."
+  }
+ }
+]

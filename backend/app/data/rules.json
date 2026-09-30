@@ -1,0 +1,944 @@
+{
+ "_about": "Правила конструктора чекапа. Движок читает этот файл; в коде логики нет. age_year = год_чекапа - год_рождения (возраст по ГОДУ достижения, как в приказе).",
+ "_sources": {
+  "DSM174": "Приказ и.о. МЗ РК от 30.10.2020 № ҚР ДСМ-174/2020 в ред. № 71 от 29.07.2025, № 109 от 21.10.2025 и № 75 от 10.07.2026 (рег. МЮ 13.07.2026 № 39291) — clinical/normativ/",
+  "PRIME": "primegc.kz/check-up и страницы пакетов primegc.kz/services/… (женский/мужской базовый до 40, женский/мужской расширенный после 40, детский мини/расширенный), сверено 30.09.2026; цены на сайте не опубликованы",
+  "CLINIC_RULE": "Правило клиники — нормативной опоры нет, ТРЕБУЕТ ПОДТВЕРЖДЕНИЯ ВРАЧА, показывать с пометкой",
+  "DSM75": "Приказ МЗ РК от 10.07.2026 № 75: гепатиты B/C — все 18+ раз в 3 года; НОВЫЙ скрининг рака лёгкого (КТ ОГК); прил. 3 (группы риска) исключено — clinical/normativ/DSM75_2026-07-10_*",
+  "ANAMNESIS_DRAFT": "Черновик Qorgan 30.09.2026: связь «ответ анкеты → услуга PRIME». Услуги — только из каталога primegc.kz. ТРЕБУЕТ УТВЕРЖДЕНИЯ ВРАЧА (медэксперт команды)"
+ },
+ "packages": [
+  {
+   "id": "prime_child",
+   "name": "Check-up «Детский» 1–17 лет",
+   "when": {
+    "age_min": 1,
+    "age_max": 17
+   },
+   "payment": "paid_prime",
+   "price": null,
+   "source": "PRIME",
+   "exams": [
+    "Консультация педиатра с полным осмотром",
+    "Консультация офтальмолога",
+    "Общий анализ крови",
+    "Общий анализ мочи",
+    "Глюкоза крови, основные биохимические показатели",
+    "УЗИ брюшной полости",
+    "ЭКГ",
+    "Заключение педиатра с рекомендациями"
+   ],
+   "extended_exams": [
+    "Консультации детских кардиолога, невролога, эндокринолога, офтальмолога, ЛОРа, хирурга",
+    "Развёрнутый анализ крови, биохимия, гормоны щитовидной железы, витамины D и B12, ферритин",
+    "УЗИ брюшной полости, почек, щитовидной железы, сердца (ЭхоКГ); тазобедренных суставов — младенцам",
+    "ЭКГ; нейросонография — детям до года",
+    "Заключение врача-куратора с рекомендациями"
+   ],
+   "name_mini": "Мини Check-up «Детский» 1–17 лет",
+   "name_extended": "Расширенный Check-up «Детский» 1–17 лет",
+   "url_mini": "https://primegc.kz/services/mini-check-up-paket-detskiy-1-17-let/",
+   "url_extended": "https://primegc.kz/services/rasshirennyy-check-up-detskiy-1-17-let/"
+  },
+  {
+   "id": "prime_basic",
+   "name": "Check-up базовый до 40 лет",
+   "when": {
+    "age_min": 18,
+    "age_max": 39
+   },
+   "payment": "paid_prime",
+   "price": null,
+   "source": "PRIME",
+   "exams": [
+    "Консультация врача-куратора (первичная и итоговая)",
+    "Осмотр офтальмолога с измерением давления в глазу",
+    "Общий анализ крови (34 показателя), С-реактивный белок, коагулограмма",
+    "Липидный профиль и глюкоза",
+    "Гормоны щитовидной железы, витамины D и B12",
+    "Печёночные и почечные пробы, общий анализ мочи",
+    "ЭхоКГ",
+    "УЗДГ сосудов шеи и ног",
+    "КТ лёгких",
+    "Гастроскопия и колоноскопия под анестезией",
+    "Тест на хеликобактер"
+   ],
+   "female_exams": [
+    "Консультация гинеколога",
+    "ЭКГ",
+    "Ферритин, железо, фолиевая кислота",
+    "УЗИ малого таза (трансвагинально)",
+    "УЗИ молочных желёз"
+   ],
+   "male_exams": [
+    "Гликированный гемоглобин",
+    "ПСА общий и свободный",
+    "УЗИ предстательной железы (ТРУЗИ), мочевого пузыря и мошонки"
+   ],
+   "name_f": "Check-up «Женский базовый до 40 лет»",
+   "name_m": "Check-up «Мужской базовый до 40 лет»",
+   "url_f": "https://primegc.kz/services/zhenskiy-bazovyy-chekap-do-40-let/",
+   "url_m": "https://primegc.kz/services/muzhskoy-bazovyy-check-up-do-40-let/"
+  },
+  {
+   "id": "prime_extended",
+   "name": "Check-up расширенный после 40 лет",
+   "when": {
+    "age_min": 40,
+    "age_max": 120
+   },
+   "payment": "paid_prime",
+   "price": null,
+   "source": "PRIME",
+   "exams": [
+    "Консультация врача-куратора (первичная и итоговая)",
+    "Расширенные анализы крови (40+ показателей: гормоны, витамины, печёночные и почечные пробы)",
+    "Липидный профиль и глюкоза",
+    "Анализ на гепатиты B и C",
+    "ЭхоКГ, ЭКГ",
+    "УЗДГ сосудов шеи и ног",
+    "КТ грудной клетки",
+    "Гастроскопия и колоноскопия под анестезией",
+    "Тест на хеликобактер"
+   ],
+   "female_exams": [
+    "Консультация гинеколога",
+    "Консультация офтальмолога (по показаниям)",
+    "Онкомаркеры: CA 15-3, CA 125, CA 72-4, CA 19-9, РЭА, АФП, S100, CYFRA",
+    "ПАП-тест",
+    "Маммография (2D/3D)",
+    "УЗИ малого таза (трансвагинально), молочных желёз, брюшной полости, почек, щитовидной железы"
+   ],
+   "male_exams": [
+    "Консультация уролога",
+    "Консультация офтальмолога",
+    "Гликированный гемоглобин",
+    "ПСА общий и свободный",
+    "УЗИ предстательной железы (ТРУЗИ) и мошонки",
+    "УЗИ брюшной полости и щитовидной железы"
+   ],
+   "name_f": "Check-up «Женский расширенный после 40 лет»",
+   "name_m": "Check-up «Мужской расширенный после 40 лет»",
+   "url_f": "https://primegc.kz/services/check-up-zhenskiy-rasshirennyy-paket-posle-40-let/",
+   "url_m": "https://primegc.kz/services/check-up-muzhskoy-rasshirennyy-posle-40-let/"
+  }
+ ],
+ "screening": [
+  {
+   "id": "scr_cvd",
+   "name": "Скрининг АГ, ИБС, сахарного диабета, глаукомы",
+   "icd": "Z13.8",
+   "when": {
+    "sex": [
+     "M",
+     "F"
+    ],
+    "age_year": [
+     40,
+     42,
+     44,
+     46,
+     48,
+     50,
+     52,
+     54,
+     56,
+     58,
+     60,
+     62,
+     64,
+     66,
+     68,
+     70,
+     72,
+     74,
+     76
+    ],
+    "not_registered": [
+     "hypertension",
+     "ihd",
+     "diabetes",
+     "glaucoma"
+    ]
+   },
+   "stage1": [
+    "Приём медсестры/фельдшера",
+    "ЛПНП",
+    "Триглицериды",
+    "Гликированный гемоглобин (HbA1c)",
+    "Внутриглазное давление",
+    "Приём терапевта/ВОП"
+   ],
+   "payment": "free_gobmp",
+   "repeat_years": 2,
+   "deadline_days": 60,
+   "prime_overlap": [
+    "Расширенные анализы крови (40+ показателей: гормоны, витамины, печёночные и почечные пробы)",
+    "Липидный профиль и глюкоза",
+    "Гликированный гемоглобин",
+    "Осмотр офтальмолога с измерением давления в глазу"
+   ],
+   "source": "DSM174 прил. 1 п.1, прил. 2 п.1"
+  },
+  {
+   "id": "scr_cerebro",
+   "name": "Скрининг цереброваскулярных заболеваний",
+   "icd": "Z13.6",
+   "when": {
+    "sex": [
+     "M"
+    ],
+    "age_year": [
+     50,
+     52,
+     54,
+     56,
+     58,
+     60,
+     62,
+     64,
+     66,
+     68,
+     70,
+     72,
+     74,
+     76
+    ],
+    "not_registered": [
+     "cerebrovascular"
+    ]
+   },
+   "stage1": [
+    "Приём медсестры",
+    "УЗДГ брахиоцефального ствола",
+    "Приём терапевта/ВОП"
+   ],
+   "payment": "free_osms",
+   "repeat_years": 2,
+   "deadline_days": 60,
+   "prime_overlap": [
+    "УЗДГ сосудов шеи и ног"
+   ],
+   "source": "DSM174 прил. 1 п.2, прил. 2 п.4"
+  },
+  {
+   "id": "scr_breast",
+   "name": "Скрининг рака молочной железы",
+   "icd": "Z12.3",
+   "when": {
+    "sex": [
+     "F"
+    ],
+    "age_year": [
+     40,
+     42,
+     44,
+     46,
+     48,
+     50,
+     52,
+     54,
+     56,
+     58,
+     60,
+     62,
+     64,
+     66,
+     68,
+     70,
+     72,
+     74,
+     76
+    ],
+    "not_registered": [
+     "breast_cancer"
+    ]
+   },
+   "stage1": [
+    "Приём медсестры/фельдшера",
+    "Маммография (4 снимка)",
+    "Вторая читка рентгенолога",
+    "Приём терапевта/ВОП"
+   ],
+   "payment": "free_gobmp",
+   "repeat_years": 2,
+   "deadline_days": 60,
+   "prime_overlap": [
+    "Маммография (2D/3D)"
+   ],
+   "source": "DSM174 прил. 1 п.3, прил. 2 п.2"
+  },
+  {
+   "id": "scr_cervix",
+   "name": "Скрининг рака шейки матки",
+   "icd": "Z12.4",
+   "when": {
+    "sex": [
+     "F"
+    ],
+    "age_year": [
+     30,
+     34,
+     38,
+     42,
+     46,
+     50,
+     54,
+     58,
+     62,
+     66,
+     70,
+     74
+    ],
+    "not_registered": [
+     "cervical_cancer"
+    ]
+   },
+   "stage1": [
+    "Приём медсестры/акушерки",
+    "Мазок на онкоцитологию",
+    "ПАП-тест (жидкостная цитология)",
+    "Приём терапевта/ВОП"
+   ],
+   "payment": "free_gobmp",
+   "repeat_years": 4,
+   "deadline_days": 60,
+   "prime_overlap": [
+    "ПАП-тест"
+   ],
+   "source": "DSM174 прил. 1 п.4, прил. 2 п.3"
+  },
+  {
+   "id": "scr_colorectal",
+   "name": "Скрининг колоректального рака",
+   "icd": "Z12.1",
+   "when": {
+    "sex": [
+     "M",
+     "F"
+    ],
+    "age_year": [
+     50,
+     52,
+     54,
+     56,
+     58,
+     60,
+     62,
+     64,
+     66,
+     68,
+     70,
+     72,
+     74,
+     76
+    ],
+    "not_registered": [
+     "colorectal"
+    ]
+   },
+   "stage1": [
+    "Приём медсестры/фельдшера",
+    "Гемокульт-тест (скрытая кровь в кале)",
+    "Приём терапевта/ВОП"
+   ],
+   "stage2_note": "Колоноскопия — на 2-м этапе, по результату теста",
+   "payment": "free_gobmp",
+   "repeat_years": 2,
+   "deadline_days": 60,
+   "prime_overlap": [],
+   "source": "DSM174 прил. 1 п.5, прил. 2 п.5"
+  },
+  {
+   "id": "scr_hepatitis",
+   "name": "Скрининг гепатитов B и C",
+   "icd": "Z11.5",
+   "when": {
+    "sex": [
+     "M",
+     "F"
+    ],
+    "age_min": 18,
+    "not_registered": [
+     "chronic_hepatitis"
+    ],
+    "not_pregnant": true
+   },
+   "stage1": [
+    "Приём медсестры/фельдшера (кровь из пальца)",
+    "Экспресс-тест на антитела к гепатиту C (anti-HCV)",
+    "Экспресс-тест на HBsAg (гепатит B)"
+   ],
+   "payment": "free_gobmp",
+   "repeat_years": 3,
+   "deadline_days": 60,
+   "prime_overlap": [
+    "Анализ на гепатиты B и C"
+   ],
+   "source": "DSM174 прил. 1 п.6 и прил. 2 п.6 в ред. приказа № 75 от 10.07.2026"
+  },
+  {
+   "id": "scr_lung",
+   "name": "Скрининг рака лёгкого",
+   "icd": "Z12.2",
+   "when": {
+    "sex": [
+     "M",
+     "F"
+    ],
+    "age_year": [
+     50,
+     52,
+     54,
+     56,
+     58,
+     60,
+     62,
+     64,
+     66,
+     68,
+     70
+    ],
+    "not_registered": [
+     "lung_cancer"
+    ],
+    "any_of": [
+     {
+      "pack_years_min": 20,
+      "quit_years_max": 15
+     },
+     {
+      "hazardous_work_10y": true
+     }
+    ]
+   },
+   "stage1": [
+    "Приём медсестры/фельдшера",
+    "КТ органов грудной клетки и средостения",
+    "Описание КТ",
+    "Приём терапевта/ВОП"
+   ],
+   "payment": "free_gobmp",
+   "repeat_years": 2,
+   "deadline_days": 60,
+   "prime_overlap": [
+    "КТ лёгких",
+    "КТ грудной клетки"
+   ],
+   "note": "Курильщик: ≥20 пачка-лет (сигарет в день / 20 × лет курения), курит сейчас или бросил менее 15 лет назад; и/или 10 лет на работах с вредными условиями (перечень — приказ МТСЗН № 170 от 24.05.2023)",
+   "source": "DSM174 прил. 1 п.7 и прил. 2 п.7 (введены приказом № 75 от 10.07.2026)"
+  }
+ ],
+ "registered_exclusion_note": "Состоит на динамическом наблюдении по заболеванию → скрининг по нему НЕ положен → «обследование — у вашего врача по наблюдению» (DSM174, формулировки целевых групп).",
+ "complaints": [
+  {
+   "id": "cmp_fatigue",
+   "when": {
+    "complaint": "fatigue"
+   },
+   "action": "highlight",
+   "exams": [
+    "Витамин D",
+    "Витамин B12",
+    "Анализ на анемию",
+    "Гормоны щитовидной железы"
+   ],
+   "source": "CLINIC_RULE",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "cmp_family_crc",
+   "when": {
+    "family_history": "colorectal_cancer"
+   },
+   "action": "add_or_recommend",
+   "exams": [
+    "Колоноскопия под анестезией"
+   ],
+   "note": "Рекомендовать обсуждение с врачом раньше 50 лет",
+   "source": "CLINIC_RULE",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "cmp_chest_pain",
+   "when": {
+    "complaint": "chest_pain"
+   },
+   "action": "red_flag",
+   "note": "Боль в груди — НЕ чекап: сразу к врачу, при острой боли — 103",
+   "source": "CLINIC_RULE",
+   "needs_doctor_validation": true
+  }
+ ],
+ "day_route_order": {
+  "_note": "Логистика, не медицина. Порядок — уточнить у клиники.",
+  "steps": [
+   "Анализы натощак (кровь, моча)",
+   "УЗИ и функциональная диагностика (ЭКГ, ЭхоКГ, УЗДГ)",
+   "КТ / маммография",
+   "Консультации врачей",
+   "Эндоскопия под анестезией (гастро- + колоноскопия вместе) — последней",
+   "Заключение врача-куратора"
+  ]
+ },
+ "missed_screening_note": "Не прошёл скрининг (беременность, болезнь, смена прикрепления, выезд, отказ) — можно пройти в течение следующего календарного года с сохранением периодичности (п.17 в ред. № 75).",
+ "screening_centers_note": "Скрининги на рак в крупных городах — с уровня поликлиник с прикреплением >30 000, где создаются централизованные скрининг-центры и call-центры мониторинга; работодатель отпускает работника с сохранением зарплаты (п.3 в ред. № 75).",
+ "prime_prep": {
+  "source": "Страницы пакетов primegc.kz, раздел подготовки (30.09.2026)",
+  "steps": [
+   "Анализы крови — строго натощак: не есть 8–12 часов, воду пить можно",
+   "Гастроскопия — не есть 8 часов, не пить 2 часа до процедуры",
+   "Колоноскопия — накануне очищение кишечника препаратом «Фортранс» по схеме врача",
+   "После наркоза — отдых 30–40 минут; в этот день нельзя за руль, возьмите сопровождающего"
+  ]
+ },
+ "prime_catalog": [
+  {
+   "id": "c_therapist",
+   "name": "Консультация терапевта",
+   "url": "https://primegc.kz/services/terapiya/"
+  },
+  {
+   "id": "c_neuro",
+   "name": "Консультация невролога",
+   "url": "https://primegc.kz/services/nevrologiya/"
+  },
+  {
+   "id": "c_endo",
+   "name": "Консультация эндокринолога",
+   "url": "https://primegc.kz/services/endokrinologiya/"
+  },
+  {
+   "id": "c_gastro",
+   "name": "Консультация гастроэнтеролога",
+   "url": "https://primegc.kz/services/gastroenterologiya/"
+  },
+  {
+   "id": "c_pulmo",
+   "name": "Консультация пульмонолога",
+   "url": "https://primegc.kz/services/pulmonologiya/"
+  },
+  {
+   "id": "c_ophth",
+   "name": "Консультация офтальмолога",
+   "url": "https://primegc.kz/services/oftalmologiya/"
+  },
+  {
+   "id": "c_ent",
+   "name": "Консультация ЛОР-врача",
+   "url": "https://primegc.kz/services/otorinolaringologiya/"
+  },
+  {
+   "id": "c_uro_f",
+   "name": "Консультация уролога (женская урология)",
+   "url": "https://primegc.kz/services/zhenskaya-urologiya/"
+  },
+  {
+   "id": "c_hemat",
+   "name": "Консультация гематолога",
+   "url": "https://primegc.kz/services/gematologiya/"
+  },
+  {
+   "id": "c_rheum",
+   "name": "Консультация ревматолога",
+   "url": "https://primegc.kz/services/revmatologiya/"
+  },
+  {
+   "id": "c_allerg",
+   "name": "Консультация аллерголога-иммунолога",
+   "url": "https://primegc.kz/services/allergologiya-i-immunologiya/"
+  },
+  {
+   "id": "d_us",
+   "name": "УЗИ (по назначению)",
+   "url": "https://primegc.kz/services/uzi/"
+  },
+  {
+   "id": "d_xray",
+   "name": "Рентген (по назначению)",
+   "url": "https://primegc.kz/services/rentgen/"
+  },
+  {
+   "id": "d_ct",
+   "name": "КТ (по назначению)",
+   "url": "https://primegc.kz/services/kompyuternaya-tomografiya/"
+  },
+  {
+   "id": "d_mri",
+   "name": "МРТ (по назначению)",
+   "url": "https://primegc.kz/services/mrt/"
+  },
+  {
+   "id": "d_mammo",
+   "name": "Маммография",
+   "url": "https://primegc.kz/services/mammografiya/"
+  },
+  {
+   "id": "d_sti",
+   "name": "Обследование на половые инфекции (состав назначает врач)",
+   "url": null
+  }
+ ],
+ "anamnesis_rules": [
+  {
+   "id": "an_diabetes",
+   "when": {
+    "conditions": "diabetes"
+   },
+   "add": [
+    "c_endo"
+   ],
+   "why": "сахарный диабет",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_head",
+   "when": {
+    "conditions": "head_vessels"
+   },
+   "add": [
+    "c_neuro"
+   ],
+   "emphasize": [
+    "УЗДГ"
+   ],
+   "why": "инсульт, сосуды, головные боли",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_lungs",
+   "when": {
+    "conditions": "lungs"
+   },
+   "add": [
+    "c_pulmo"
+   ],
+   "emphasize": [
+    "КТ"
+   ],
+   "why": "проблемы с лёгкими",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_tb",
+   "when": {
+    "conditions": "tb"
+   },
+   "add": [
+    "c_pulmo"
+   ],
+   "emphasize": [
+    "КТ"
+   ],
+   "why": "туберкулёз",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_bowel",
+   "when": {
+    "conditions": "bowel"
+   },
+   "add": [
+    "c_gastro"
+   ],
+   "emphasize": [
+    "колоноскопия"
+   ],
+   "why": "запоры, полипы, кишечник",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_hepatitis",
+   "when": {
+    "conditions": "hepatitis"
+   },
+   "add": [
+    "c_gastro"
+   ],
+   "emphasize": [
+    "печёночные"
+   ],
+   "why": "хронический гепатит",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_glaucoma",
+   "when": {
+    "conditions": "glaucoma"
+   },
+   "add": [
+    "c_ophth"
+   ],
+   "why": "глаукома",
+   "skip_if_in_package": "офтальмолог",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_bleeding",
+   "when": {
+    "conditions": "bleeding"
+   },
+   "add": [
+    "c_hemat"
+   ],
+   "why": "кровотечения",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_pressure",
+   "when": {
+    "conditions": "pressure"
+   },
+   "emphasize": [
+    "ЭхоКГ",
+    "УЗДГ"
+   ],
+   "why": "повышенное давление",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_heart",
+   "when": {
+    "conditions": "heart"
+   },
+   "emphasize": [
+    "ЭхоКГ"
+   ],
+   "why": "боли в сердце, инфаркт",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_legs",
+   "when": {
+    "conditions": "legs"
+   },
+   "emphasize": [
+    "УЗДГ"
+   ],
+   "why": "боли в ногах при ходьбе",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_breast",
+   "when": {
+    "conditions": "breast"
+   },
+   "emphasize": [
+    "молочн",
+    "Маммограф"
+   ],
+   "why": "уплотнения в молочной железе",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_urine_f",
+   "when": {
+    "conditions": "urine",
+    "sex": "F"
+   },
+   "add": [
+    "c_uro_f"
+   ],
+   "why": "проблемы с мочеиспусканием",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_urine_m",
+   "when": {
+    "conditions": "urine",
+    "sex": "M"
+   },
+   "emphasize": [
+    "ПСА",
+    "предстательной"
+   ],
+   "why": "проблемы с мочеиспусканием",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_discharge",
+   "when": {
+    "discharge": "yes"
+   },
+   "add": [
+    "d_sti"
+   ],
+   "why": "выделения, запах",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_dysuria",
+   "when": {
+    "dysuria": "yes"
+   },
+   "add": [
+    "d_sti"
+   ],
+   "emphasize": [
+    "ПСА",
+    "предстательной"
+   ],
+   "why": "боль при мочеиспускании, выделения",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_fam_crc",
+   "when": {
+    "family_history": "colorectal_cancer"
+   },
+   "emphasize": [
+    "колоноскопия"
+   ],
+   "why": "рак кишечника в семье",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_fam_breast",
+   "when": {
+    "family_history": "breast_cancer",
+    "sex": "F"
+   },
+   "emphasize": [
+    "молочн",
+    "Маммограф",
+    "Онкомаркеры"
+   ],
+   "why": "рак молочной железы или яичников в семье",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_fam_cvd",
+   "when": {
+    "family_history": "early_cvd"
+   },
+   "emphasize": [
+    "ЭхоКГ",
+    "Липидный"
+   ],
+   "why": "инфаркт или инсульт у родных до 60 лет",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  },
+  {
+   "id": "an_fam_diabetes",
+   "when": {
+    "family_history": "diabetes"
+   },
+   "emphasize": [
+    "глюкоз",
+    "Гликированный"
+   ],
+   "why": "сахарный диабет в семье",
+   "source": "ANAMNESIS_DRAFT",
+   "needs_doctor_validation": true
+  }
+ ],
+ "prep_catalog": [
+  {
+   "id": "pr_thinners",
+   "when_answer": {
+    "blood_thinners": "yes"
+   },
+   "match": [
+    "под анестезией"
+   ],
+   "day": "now",
+   "title": "Препараты, разжижающие кровь",
+   "text": "Вы отметили, что принимаете их. Не отменяйте сами — позвоните врачу-куратору: он скажет, нужна ли пауза перед гастро- и колоноскопией.",
+   "question": "Можно ли самому перестать пить таблетки за неделю до чекапа?",
+   "options": [
+    "Да, так безопаснее",
+    "Нет, только по слову врача"
+   ],
+   "correct": 1,
+   "source": "Анкета + правило подготовки к эндоскопии, утверждает врач"
+  },
+  {
+   "id": "pr_colon",
+   "match": [
+    "олоноскопия"
+   ],
+   "day": "eve",
+   "title": "Колоноскопия — очищение кишечника",
+   "text": "Препарат «Фортранс» по схеме врача. Если кишечник не очищен, осмотр переносят на другой день.",
+   "question": "Когда начинаете пить «Фортранс»?",
+   "options": [
+    "Утром в день чекапа",
+    "Накануне, по схеме врача"
+   ],
+   "correct": 1,
+   "source": "Страницы пакетов primegc.kz, раздел подготовки (30.09.2026)"
+  },
+  {
+   "id": "pr_blood",
+   "match": [
+    "анализ",
+    "Липидный",
+    "ПСА",
+    "Онкомаркеры",
+    "глюкоз"
+   ],
+   "day": "morning",
+   "title": "Анализы крови — строго натощак",
+   "text": "Не есть 8–12 часов. Воду пить можно. Еда и сладкие напитки искажают сахар и холестерин.",
+   "question": "Можно ли утром выпить кофе с сахаром?",
+   "options": [
+    "Да, немного",
+    "Нет, только воду"
+   ],
+   "correct": 1,
+   "source": "Страницы пакетов primegc.kz, раздел подготовки (30.09.2026)"
+  },
+  {
+   "id": "pr_gastro",
+   "match": [
+    "Гастроскопия"
+   ],
+   "day": "morning",
+   "title": "Гастроскопия — без еды 8 часов, без воды 2 часа",
+   "text": "Не есть 8 часов и не пить 2 часа до процедуры. Точное время гастроскопии будет в маршруте.",
+   "question": "За сколько часов до гастроскопии нельзя пить даже воду?",
+   "options": [
+    "За 2 часа",
+    "За 15 минут"
+   ],
+   "correct": 0,
+   "source": "Страницы пакетов primegc.kz, раздел подготовки (30.09.2026)"
+  },
+  {
+   "id": "pr_anesthesia",
+   "match": [
+    "под анестезией"
+   ],
+   "day": "after",
+   "title": "После наркоза — не за руль",
+   "text": "Отдых 30–40 минут в клинике. В этот день нельзя садиться за руль — возьмите сопровождающего или такси.",
+   "question": "Можно ли уехать домой за рулём через час после чекапа?",
+   "options": [
+    "Да, если чувствую себя хорошо",
+    "Нет, в этот день нельзя"
+   ],
+   "correct": 1,
+   "source": "Страницы пакетов primegc.kz, раздел подготовки (30.09.2026)"
+  }
+ ]
+}
+
