@@ -180,3 +180,72 @@ def test_reminder_has_prep_booking_and_disclaimer(monkeypatch):
 def test_plan_and_medical_replies_carry_not_diagnosis():
     plan = tg.render_plan(UserIntakeData(state_version=1, age=42, gender=Gender.male), _result())
     assert "Это не диагноз" in plan
+
+
+# ---------- P2: семейный режим ----------
+
+def _bind(chat_id, sid, sessions):
+    run(tg.handle_update(upd(chat_id, f"/start {sid}"), sessions))
+
+
+def test_family_binds_two_plans_and_switches(monkeypatch):
+    fake = FakeSend(monkeypatch)
+    tg.CHATS.clear(); tg.FAMILY.clear()
+    sessions = {
+        "dad": UserIntakeData(state_version=1, age=41, gender=Gender.male),
+        "mom": UserIntakeData(state_version=1, age=36, gender=Gender.female),
+    }
+    _bind(888, "dad", sessions)
+    _bind(888, "mom", sessions)
+    assert tg.FAMILY.get(888) == ["dad", "mom"]
+    assert tg.CHATS[888] == "mom"  # активным стал последний привязанный
+    assert "Семейный режим" in fake.sent[-1][1]
+
+    run(tg.handle_update(upd(888, "/family"), sessions))
+    view = fake.sent[-1][1]
+    assert "мужчина, 41" in view and "женщина, 36" in view and "(активный)" in view
+
+    run(tg.handle_update(upd(888, "план 1"), sessions))
+    assert tg.CHATS[888] == "dad"
+    assert "мужчина, 41" in fake.sent[-1][1]
+
+    run(tg.handle_update(upd(888, "/use 9"), sessions))
+    assert "В семье 2 план" in fake.sent[-1][1]
+    assert tg.CHATS[888] == "dad"
+
+
+def test_family_prunes_reset_sessions(monkeypatch):
+    fake = FakeSend(monkeypatch)
+    tg.CHATS.clear(); tg.FAMILY.clear()
+    sessions = {"a": UserIntakeData(state_version=1, age=50, gender=Gender.male),
+                "b": UserIntakeData(state_version=1, age=45, gender=Gender.female)}
+    _bind(889, "a", sessions)
+    _bind(889, "b", sessions)
+    sessions.pop("a")  # сессию сбросили на сайте
+    run(tg.handle_update(upd(889, "семья"), sessions))
+    view = fake.sent[-1][1]
+    assert "мужчина, 50" not in view and "женщина, 45" in view
+    assert tg.FAMILY.get(889) == ["b"]
+
+
+def test_family_binding_survives_restart(monkeypatch):
+    fake = FakeSend(monkeypatch)
+    tg.CHATS.clear(); tg.FAMILY.clear()
+    from app import store
+    sessions = {"x": UserIntakeData(state_version=1, age=30, gender=Gender.male)}
+    _bind(890, "x", sessions)
+    store._reset()
+    assert tg.FAMILY.get(890) == ["x"] and tg.CHATS[890] == "x"
+
+
+# ---------- P2: чек-лист подготовки ----------
+
+def test_prep_checklist_format(monkeypatch):
+    fake = FakeSend(monkeypatch)
+    tg.CHATS.clear(); tg.FAMILY.clear()
+    sessions = {"p": UserIntakeData(state_version=1, age=42, gender=Gender.male)}
+    _bind(891, "p", sessions)
+    run(tg.handle_update(upd(891, "дай чек-лист подготовки"), sessions))
+    body = fake.sent[-1][1]
+    assert "Чек-лист подготовки" in body and "☐" in body and "натощак" in body.lower()
+    assert "не диагноз" in body

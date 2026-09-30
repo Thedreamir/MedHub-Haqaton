@@ -9,6 +9,7 @@ Deep-link t.me/<bot>?start=<session_id> привязывает чат к сес�
 """
 import asyncio
 import os
+import re
 import time
 
 import httpx
@@ -22,6 +23,10 @@ _API = "https://api.telegram.org/bot"
 
 # chat_id -> session_id: SQLite на диске — переживает рестарт процесса
 CHATS: PersistedDict = PersistedDict("chats")
+
+# Семейный режим: chat_id -> список session_id всех планов, привязанных к чату
+# (я, супруг(а), родители). Активный план лежит в CHATS — все команды идут по нему.
+FAMILY: PersistedDict = PersistedDict("family")
 
 
 def configured() -> bool:
@@ -93,11 +98,22 @@ def _answer(text: str, intake: UserIntakeData, result: CheckupPackageResponse) -
             items = "\n".join(f"• {h.item} — {h.when}" for h in due)
             return "Повторные скрининги по приказу ДСМ-174/2020:\n" + items
         return "Активных повторных скринингов сейчас нет — вы в плане."
-    if any(w in t for w in ("подготов", "натощак", "можно ли есть", "диета")):
+    if any(w in t for w in ("подготов", "натощак", "можно ли есть", "диета",
+                            "чек-лист", "чеклист")):
         prep = [s for s in result.itinerary_timeline if "подготов" in s.block.lower()]
         if prep:
-            return ("\n".join(f"{s.block}: {s.details}" for s in prep)
-                    + "\n\nЭто не диагноз — подготовку подтверждает клиника.")
+            items = []
+            for s_ in prep:
+                for part in s_.details.split("; "):
+                    part = part.strip().rstrip(".")
+                    if part and "подтверждает клиника" not in part:
+                        items.append(part)
+            if items:
+                checklist = "\n".join(f"☐ {x}" for x in items)
+                return ("Чек-лист подготовки к чекапу:\n" + checklist +
+                        "\n\nВ день визита: паспорт, анализы натощак (вода можно), "
+                        "начало в 8:00.\nЭто не диагноз — подготовку подтверждает клиника "
+                        "при записи: +7 747 094 26 21.")
         return "Подготовку подтверждает клиника при записи: +7 747 094 26 21."
     # Свободный текст без явной темы — это жалоба/контекст: Зелёный навигатор.
     return green_navigator(text, result)
@@ -462,6 +478,45 @@ _BIND_HINT = ("Сначала пройдите анкету на сайте ко
               "к вашему плану.")
 
 
+def _family_list(chat_id: int) -> list:
+    return list(FAMILY.get(chat_id, []))
+
+
+def _describe_member(intake: UserIntakeData) -> str:
+    """Короткая подпись члена семьи: «мужчина, 41 — пакет «Мужской 40+»»."""
+    who = []
+    if intake.gender:
+        who.append("мужчина" if intake.gender.value == "male" else "женщина")
+    if intake.age:
+        who.append(str(intake.age))
+    label = ", ".join(who) if who else "анкета"
+    pkg = build_response(intake).prime_package
+    if pkg:
+        label += f" — пакет «{pkg.name}»"
+    return label
+
+
+def _family_view(chat_id: int, sessions: dict) -> str:
+    sids = _family_list(chat_id)
+    alive = []
+    lines = []
+    active = CHATS.get(chat_id)
+    for sid in sids:
+        intake = sessions.get(sid)
+        if intake is None:
+            continue  # сессию сбросили на сайте — вычёркиваем из семьи
+        alive.append(sid)
+        mark = " (активный)" if sid == active else ""
+        lines.append(f"{len(alive)}. {_describe_member(intake)}{mark}")
+    if alive != sids:
+        FAMILY[chat_id] = alive
+    if not lines:
+        return _BIND_HINT
+    return ("Планы вашей семьи в этом чате:\n" + "\n".join(lines) +
+            "\n\nПереключиться: «план 1», «план 2»… — все команды (/plan, запись, "
+            "подготовка) пойдут по активному плану.")
+
+
 async def handle_update(update: dict, sessions: dict) -> None:
     msg = update.get("message") or {}
     chat = msg.get("chat") or {}
@@ -488,6 +543,12 @@ async def handle_update(update: dict, sessions: dict) -> None:
                                  + _BIND_HINT)
             return
         CHATS[chat_id] = sid
+        fam = _family_list(chat_id)
+        if sid not in fam:
+            fam.append(sid)
+            FAMILY[chat_id] = fam
+        family_hint = ("\nСемейный режим: в чате теперь "
+                       f"{len(fam)} плана. /family — список, «план N» — переключиться.") if len(fam) > 1 else ""
         result = build_response(intake)
         due = due_screenings(result)
         extra = ("\n🔴 По срокам уже положено: " + "; ".join(due) + "\n") if due else ""
@@ -509,7 +570,8 @@ async def handle_update(update: dict, sessions: dict) -> None:
                     "а что закрыть в PRIME.\n"
                     f"Уже знаю о вас: {knows}.\n"
                     "Действия: /plan — весь план со статусами · «записаться» — готовая "
-                    "заявка в клинику · или просто опишите жалобу — подскажу маршрут.")
+                    "заявка в клинику · или просто опишите жалобу — подскажу маршрут."
+                    + family_hint)
         return
 
     # Красный флаг не ждёт привязки: тот же keyword-floor, что и на сайте.
@@ -518,6 +580,23 @@ async def handle_update(update: dict, sessions: dict) -> None:
                     "По описанному похоже на состояние, которое нельзя откладывать на "
                     "плановый чекап. Пожалуйста, обратитесь за медицинской помощью "
                     "сейчас — единый номер 103.")
+        return
+
+    low = text.lower()
+    if low.startswith("/family") or low.strip() == "семья":
+        await _send(chat_id, _family_view(chat_id, sessions))
+        return
+
+    m_switch = re.match(r"^(?:/use|план)\s*(\d+)\s*$", low.strip())
+    if m_switch:
+        fam = [sid for sid in _family_list(chat_id) if sessions.get(sid) is not None]
+        n = int(m_switch.group(1))
+        if 1 <= n <= len(fam):
+            CHATS[chat_id] = fam[n - 1]
+            await _send(chat_id, "Активный план: " + _describe_member(sessions[fam[n - 1]])
+                        + ". /plan — открыть его, /family — весь список.")
+        else:
+            await _send(chat_id, f"В семье {len(fam)} план(а) — выберите номер из /family.")
         return
 
     sid = CHATS.get(chat_id)
