@@ -246,7 +246,7 @@ def _route(intake: UserIntakeData, pkg: PrimePackage | None, addons: list[TestIt
     order += 1
     after = "Результаты — на следующий день. " + ("; ".join(prep_titles["after"]) + ". " if prep_titles["after"] else "")
     steps.append(ItineraryStep(order=order, block="После визита", title="Результаты и заключение",
-                               details=after + "Заключение врача-куратора через 2–3 дня."))
+                               details=after + "Заключение врача-куратора на 2-й день (по каталогу PRIME)."))
     return steps
 
 
@@ -276,7 +276,7 @@ def build_response(intake: UserIntakeData) -> CheckupPackageResponse:
         item="Чекап PRIME (демо, синтетические данные)", status="done", when="сегодня",
         why="демо-срез карты здоровья", source="DEMO"))
     health.insert(1, HealthMapEntry(
-        item="Заключение врача-куратора", status="next_step", when="через 2–3 дня после визита",
+        item="Заключение врача-куратора", status="next_step", when="на 2-й день после визита (по каталогу PRIME)",
         why="итог маршрута", source="PRIME"))
     return CheckupPackageResponse(
         is_emergency=False, osms_free_tests=osms, prime_package=pkg,
