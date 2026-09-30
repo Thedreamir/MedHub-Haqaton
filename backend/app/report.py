@@ -17,8 +17,11 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 from .schemas import CheckupPackageResponse, UserIntakeData
 
-pdfmetrics.registerFont(TTFont("DV", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
-pdfmetrics.registerFont(TTFont("DVB", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"))
+import os
+
+_FONTS = os.path.join(os.path.dirname(__file__), "fonts")
+pdfmetrics.registerFont(TTFont("DV", os.path.join(_FONTS, "DejaVuSans.ttf")))
+pdfmetrics.registerFont(TTFont("DVB", os.path.join(_FONTS, "DejaVuSans-Bold.ttf")))
 
 EMERALD = colors.HexColor("#0e7a5f")
 GOLD = colors.HexColor("#b8860b")
