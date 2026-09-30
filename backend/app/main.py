@@ -135,9 +135,11 @@ async def tg_llm_selftest():
 
 @app.post("/api/tg/webhook")
 async def tg_webhook(request: Request):
+    # ACK сразу: LLM-цепочка может думать десятки секунд, а Telegram ждёт ответ
+    # вебхука недолго. Обработка уходит в фон — ответ доедет следом.
     if not tg.configured():
         return {"ok": True, "configured": False}
-    await tg.handle_update(await request.json(), SESSIONS)
+    asyncio.create_task(tg.handle_update(await request.json(), SESSIONS))
     return {"ok": True}
 
 @app.on_event("startup")
