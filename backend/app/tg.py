@@ -66,6 +66,7 @@ MENU = {"inline_keyboard": [
      {"text": "⏰ Скрининги", "callback_data": "cmd:recall"}],
     [{"text": "👨‍👩‍👧 Семья", "callback_data": "cmd:family"},
      {"text": "🗓 Записаться", "callback_data": "cmd:book"}],
+    [{"text": "📝 Пройти анкету", "url": "https://checkup-intelligence.vercel.app"}],
 ]}
 
 
