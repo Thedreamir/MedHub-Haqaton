@@ -100,3 +100,25 @@ def test_due_screenings_and_remind_once(monkeypatch):
     assert run(tg.remind_once(777, intake)) is True
     assert "ДСМ-174/2020" in fake.sent[0][1]
     assert run(tg.remind_once(777, intake)) is False  # анти-спам: повторно не шлём
+
+
+def test_llm_reply_none_without_key_falls_back(monkeypatch):
+    # без ключа llm_reply обязан вернуть None -> сработает детерминированный ответ
+    fake = FakeSend(monkeypatch)
+    tg.CHATS.clear()
+    sessions = {"s1": UserIntakeData(state_version=1, age=42, gender=Gender.male)}
+    run(tg.handle_update(upd(777, "/start s1"), sessions))
+    fake.sent.clear()
+    run(tg.handle_update(upd(777, "сколько стоит мой чекап?"), sessions))
+    assert "467 100" in fake.sent[0][1]
+
+
+def test_llm_selftest_without_key():
+    res = run(tg.llm_selftest())
+    assert res["ok"] is False and res["reason"] == "no OPENROUTER_API_KEY"
+
+
+def test_context_card_contains_facts():
+    card = tg._context_card(UserIntakeData(state_version=1, age=42, gender=Gender.male),
+                            _result(), "скачет давление")
+    assert "467 100" in card and "ОСМС" in card and "+7 747 094 26 21" in card

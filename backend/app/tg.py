@@ -130,10 +130,7 @@ _OSMS_ROUTES = [
 
 def green_navigator(text: str, result: CheckupPackageResponse) -> str:
     """Свободная жалоба -> маршрут: срочность, ОСМС vs PRIME, готовый текст заявки."""
-    t = text.lower()
-    urgent = any(w in t for w in _URGENT_WORDS)
-    osms_hit = next((route for keys, route in _OSMS_ROUTES
-                     if any(k in t for k in keys)), None)
+    urgent, osms_hit = _nav_facts(text)
 
     if urgent:
         urgency = ("Судя по описанию, откладывать не стоит: обратитесь к врачу "
@@ -211,6 +208,117 @@ async def reminder_loop(sessions: dict) -> None:
                 except Exception:
                     continue  # одна неудачная отправка не останавливает цикл
 
+
+# ---------- Живой диалог: бесплатная Qwen через OpenRouter (fallback = детерминированный) ----------
+
+# Цепочка бесплатных моделей; первая ответившая побеждает. Веб-чат на Nemotron не трогаем.
+_TG_MODELS = [m.strip() for m in os.environ.get(
+    "TG_LLM_MODELS",
+    "qwen/qwen3-32b:free,qwen/qwen-2.5-72b-instruct:free,qwen/qwen3-235b-a22b:free"
+).split(",") if m.strip()]
+
+_SYSTEM = (
+    "Ты Primey — живой ассистент клиники PRIME в Telegram. Отвечай тепло и по-человечески, "
+    "коротко (2–8 строк), по-русски. Факты — ТОЛЬКО из карточки плана ниже: цены, состав, "
+    "даты и телефоны не выдумывай и не округляй. Не ставь диагнозы и не обещай результат "
+    "лечения. Если вопрос про цену/состав/маршрут/подготовку/повторные скрининги — отвечай "
+    "точно по карточке. Если это жалоба — мягко дай маршрут из карточки (ОСМС или PRIME) "
+    "и приложи готовый текст заявки. Экстренные состояния уже перехвачены до тебя: про 103 "
+    "пиши, только если пользователь сам описывает угрозу жизни."
+)
+
+
+def _nav_facts(text: str):
+    t = text.lower()
+    urgent = any(w in t for w in _URGENT_WORDS)
+    osms_hit = next((route for keys, route in _OSMS_ROUTES
+                     if any(k in t for k in keys)), None)
+    return urgent, osms_hit
+
+
+def _context_card(intake: UserIntakeData, result: CheckupPackageResponse, text: str) -> str:
+    lines = ["КАРТОЧКА ПЛАНА ПОЛЬЗОВАТЕЛЯ:"]
+    lines.append(f"Возраст/пол: {intake.age}, {intake.gender.value if intake.gender else '—'}.")
+    if result.is_emergency:
+        lines.append("По анкете есть тревожные признаки: чекап не подбирается, маршрут — 103.")
+        return "\n".join(lines)
+    pkg = result.prime_package
+    if pkg:
+        price = _fmt(pkg.price_kzt) if pkg.price_kzt is not None else "уточняется"
+        lines.append(f"Пакет PRIME: «{pkg.name}», {price}.")
+        if pkg.tests:
+            lines.append("Состав пакета: " + "; ".join(x.name for x in pkg.tests[:15]) + ".")
+    if result.osms_free_tests:
+        lines.append("Бесплатно по ОСМС (0 ₸): "
+                     + "; ".join(t.name for t in result.osms_free_tests[:12]) + ".")
+    if result.total_paid_kzt:
+        lines.append(f"Итого платная часть: {_fmt(result.total_paid_kzt)}.")
+    if result.itinerary_timeline:
+        lines.append("Маршрут: " + " → ".join(s.block for s in result.itinerary_timeline) + ".")
+    due = due_screenings(result)
+    if due:
+        lines.append("Повторные скрининги по срокам (ДСМ-174/2020): " + "; ".join(due) + ".")
+    urgent, osms_hit = _nav_facts(text)
+    if urgent:
+        lines.append("Оценка жалобы: срочно — к врачу в ближайшие 1–2 дня, не ждать чекапа.")
+    if osms_hit:
+        lines.append(f"Маршрут по жалобе: {osms_hit} — бесплатно по ОСМС, направление "
+                     "у участкового врача, запись eGov/damumed.kz.")
+    elif not urgent:
+        lines.append("Маршрут по жалобе: под скрининг ОСМС не попадает — PRIME, платно.")
+    lines.append("Запись в PRIME: +7 747 094 26 21, salem@primegc.kz.")
+    lines.append("Формат готовой заявки: «Здравствуйте! Хочу записаться: <услуга>. "
+                 "Повод: <жалоба>. Подскажите ближайшее время приёма.»")
+    return "\n".join(lines)
+
+
+async def llm_reply(text: str, intake: UserIntakeData,
+                    result: CheckupPackageResponse) -> str | None:
+    """Живой ответ бесплатной Qwen поверх карточки плана. None -> детерминированный fallback."""
+    key = os.environ.get("OPENROUTER_API_KEY", "")
+    if not key:
+        return None
+    card = _context_card(intake, result, text)
+    async with httpx.AsyncClient(timeout=30) as c:
+        for model in _TG_MODELS:
+            try:
+                r = await c.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {key}"},
+                    json={"model": model, "max_tokens": 500, "temperature": 0.4,
+                          "messages": [{"role": "system", "content": _SYSTEM + "\n\n" + card},
+                                       {"role": "user", "content": text}]})
+                if r.status_code != 200:
+                    continue
+                out = (r.json().get("choices") or [{}])[0].get("message", {}).get("content", "")
+                if out and out.strip():
+                    return out.strip()
+            except Exception:
+                continue
+    return None
+
+
+async def llm_selftest() -> dict:
+    """Проверка цепочки бесплатных моделей с реальным ключом (для прод-диагностики)."""
+    key = os.environ.get("OPENROUTER_API_KEY", "")
+    if not key:
+        return {"ok": False, "reason": "no OPENROUTER_API_KEY", "models": _TG_MODELS}
+    async with httpx.AsyncClient(timeout=30) as c:
+        for model in _TG_MODELS:
+            t0 = time.time()
+            try:
+                r = await c.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {key}"},
+                    json={"model": model, "max_tokens": 8,
+                          "messages": [{"role": "user", "content": "Ответь одним словом: ок"}]})
+                if r.status_code == 200:
+                    return {"ok": True, "model": model,
+                            "latency_ms": int((time.time() - t0) * 1000)}
+            except Exception:
+                continue
+    return {"ok": False, "reason": "all models failed", "models": _TG_MODELS}
+
 _BIND_HINT = ("Сначала пройдите анкету на сайте конструктора и нажмите "
               "«Напоминания в Telegram» на странице результата — бот привяжется "
               "к вашему плану.")
@@ -258,4 +366,6 @@ async def handle_update(update: dict, sessions: dict) -> None:
     if intake is None:
         await _send(chat_id, _BIND_HINT)
         return
-    await _send(chat_id, _answer(text, intake, build_response(intake)))
+    result = build_response(intake)
+    reply = await llm_reply(text, intake, result)
+    await _send(chat_id, reply if reply is not None else _answer(text, intake, result))

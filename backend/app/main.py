@@ -128,6 +128,11 @@ def tg_start(session_id: str):
     return RedirectResponse(f"https://t.me/{user}?start={session_id}")
 
 
+@app.get("/api/tg/llm-selftest")
+async def tg_llm_selftest():
+    return await tg.llm_selftest()
+
+
 @app.post("/api/tg/webhook")
 async def tg_webhook(request: Request):
     if not tg.configured():
