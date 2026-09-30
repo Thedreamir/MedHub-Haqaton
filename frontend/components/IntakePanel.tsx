@@ -27,7 +27,7 @@ const REDFLAG_LABELS: Record<string, string> = {
 
 const EMPTY: Intake = {
   age: null, gender: null, symptoms: [], family_history: [], chronic_conditions: [],
-  red_flags: [], is_pregnant: null, child_age_months: null, state_version: 0,
+  red_flags: [], is_pregnant: null, child_age_months: null, smoking: null, state_version: 0,
 };
 
 type ListKey = "symptoms" | "family_history" | "chronic_conditions";
@@ -70,11 +70,11 @@ export default function IntakePanel() {
   useEffect(() => {
     if (!intake) return;
     const cur = JSON.stringify([intake.age, intake.gender, intake.symptoms, intake.family_history,
-      intake.chronic_conditions, intake.red_flags, intake.is_pregnant, intake.child_age_months]);
+      intake.chronic_conditions, intake.red_flags, intake.is_pregnant, intake.child_age_months, intake.smoking]);
     if (prev.current && prev.current !== cur) {
       const keys = new Set<string>();
       const p = JSON.parse(prev.current); const c = JSON.parse(cur);
-      ["age", "gender", "symptoms", "family", "chronic", "flags", "pregnant", "child"].forEach((k, i) => {
+      ["age", "gender", "symptoms", "family", "chronic", "flags", "pregnant", "child", "smoking"].forEach((k, i) => {
         if (JSON.stringify(p[i]) !== JSON.stringify(c[i])) keys.add(k);
       });
       setChanged(keys);
@@ -147,18 +147,25 @@ export default function IntakePanel() {
           </div>
         </Tile>
 
-        <Tile wide icon={<HeartPulse className="w-4 h-4" />} title="Анамнез и семья" highlight={changed.has("family") || changed.has("chronic")}>
-          <div className="text-[11px] text-gray-400 mb-1">здоровье семьи</div>
+        <Tile wide icon={<HeartPulse className="w-4 h-4" />} title="Анамнез и семья" highlight={changed.has("family") || changed.has("chronic") || changed.has("smoking")}>
+          <div className="text-[11px] text-gray-400 mb-1">здоровье семьи — 1-я линия (родители, братья, сёстры)</div>
           <div className="flex flex-wrap gap-1.5 mb-3">
             {FAMILY.map(([v, l]) => (
               <Chip key={v} active={draft.family_history.includes(v)} label={l} onClick={() => toggle("family_history", v)} />
             ))}
           </div>
           <div className="text-[11px] text-gray-400 mb-1">хронические состояния</div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5 mb-3">
             {CHRONIC.map(([v, l]) => (
               <Chip key={v} active={draft.chronic_conditions.includes(v)} label={l} onClick={() => toggle("chronic_conditions", v)} />
             ))}
+          </div>
+          <div className="text-[11px] text-gray-400 mb-1">образ жизни</div>
+          <div className="flex flex-wrap gap-1.5">
+            <Chip active={draft.smoking === true} label="курю / вейплю"
+              onClick={() => edit("smoking", draft.smoking === true ? null : true)} />
+            <Chip active={draft.smoking === false} label="не курю"
+              onClick={() => edit("smoking", draft.smoking === false ? null : false)} />
           </div>
         </Tile>
 

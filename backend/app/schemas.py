@@ -110,6 +110,7 @@ class ExtractionPatch(StrictModel):
     red_flags: list[RedFlag] = Field(default_factory=list)
     is_pregnant: Optional[bool] = None
     child_age_months: Optional[int] = Field(default=None, ge=0, le=17 * 12)
+    smoking: Optional[bool] = None
 
 
 class ManualIntakeRequest(StrictModel):
@@ -132,6 +133,7 @@ class UserIntakeData(StrictModel):
     red_flags: list[RedFlag] = Field(default_factory=list)
     is_pregnant: Optional[bool] = None
     child_age_months: Optional[int] = Field(default=None, ge=0, le=17 * 12)
+    smoking: Optional[bool] = None
     state_version: int = Field(ge=0, description="Monotonic; client drops older versions")
 
 

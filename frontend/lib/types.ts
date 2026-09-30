@@ -21,6 +21,7 @@ export interface Intake {
   age: number | null; gender: "male" | "female" | null;
   symptoms: string[]; family_history: string[]; chronic_conditions: string[];
   red_flags: string[]; is_pregnant: boolean | null; child_age_months: number | null;
+  smoking: boolean | null;
   state_version: number;
 }
 export interface ChatResponse {

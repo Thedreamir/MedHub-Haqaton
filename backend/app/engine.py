@@ -4,6 +4,7 @@ The LLM never calls these functions; it only fills the intake schema."""
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -73,6 +74,9 @@ def _eval_screening(scr: dict, intake: UserIntakeData):
     else:
         due = "due"
     if w.get("any_of"):
+        if intake.smoking:
+            # курение указано -> группа риска scr_lung; пачко-годы уточняет врач
+            return due, None
         return "risk_unknown", None  # группа риска (стаж курения) уточняется врачом
     return due, None
 
@@ -228,14 +232,26 @@ def _route(intake: UserIntakeData, pkg: PrimePackage | None, addons: list[TestIt
                                details="; ".join(prep_flat) + ". Подготовку подтверждает клиника при записи."
                                if prep_flat else "Подготовку подтверждает клиника при записи."))
     order += 1
+    route_steps = RULES.get("day_route_order", {}).get("steps", [])[:5]
+    if intake.is_pregnant:
+        route_steps = [st for st in route_steps if not _RAD.search(st)]
     steps.append(ItineraryStep(order=order, block="День визита", time_window="8:00–16:00",
                                title="Чекап за один день",
-                               details=" → ".join(RULES.get("day_route_order", {}).get("steps", [])[:5])))
+                               details=" → ".join(route_steps)))
     order += 1
     after = "Результаты — на следующий день. " + ("; ".join(prep_titles["after"]) + ". " if prep_titles["after"] else "")
     steps.append(ItineraryStep(order=order, block="После визита", title="Результаты и заключение",
                                details=after + "Заключение врача-куратора через 2–3 дня."))
     return steps
+
+
+_RAD = re.compile(r"(флюор|флг|рентген|маммограф|\bкт\b)", re.IGNORECASE)
+
+
+def _no_radiation(items):
+    """is_pregnant=True гасит лучевую диагностику (ФЛГ/КТ/рентген/маммографию)
+    на уровне кода — независимо от того, какое правило её предложило."""
+    return [t for t in items if not _RAD.search(t.name)]
 
 
 def build_response(intake: UserIntakeData) -> CheckupPackageResponse:
@@ -245,6 +261,11 @@ def build_response(intake: UserIntakeData) -> CheckupPackageResponse:
     pkg, _ = _select_package(intake)
     _overlap_tag(osms, pkg)
     addons = _complaint_addons(intake) + _anamnesis_addons(intake)
+    if intake.is_pregnant:
+        osms = _no_radiation(osms)
+        addons = _no_radiation(addons)
+        if pkg and pkg.tests:
+            pkg.tests = _no_radiation(pkg.tests)
     total = (pkg.price_kzt or 0)
     health.insert(0, HealthMapEntry(
         item="Чекап PRIME (демо, синтетические данные)", status="done", when="сегодня",

@@ -24,7 +24,7 @@ def health():
 
 def _merge(intake: UserIntakeData, patch) -> UserIntakeData:
     data = intake.model_dump()
-    for f in ("age", "gender", "is_pregnant", "child_age_months"):
+    for f in ("age", "gender", "is_pregnant", "child_age_months", "smoking"):
         v = getattr(patch, f)
         if v is not None:
             data[f] = v

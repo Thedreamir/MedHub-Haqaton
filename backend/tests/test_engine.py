@@ -85,3 +85,32 @@ def test_keyword_pregnancy_negation_ignored():
     from app.llm import keyword_extract
     p = keyword_extract("Мне 50 лет, женщина, не беременна")
     assert p.is_pregnant is not True
+
+
+def test_smoker_lung_ct_due():
+    r = build_response(intake(age=52, gender=Gender.male, smoking=True))
+    names = [t.name for t in r.osms_free_tests]
+    assert any("КТ органов грудной клетки" in n for n in names)
+
+
+def test_lung_risk_unknown_without_smoking_data():
+    r = build_response(intake(age=52, gender=Gender.male))
+    names = [t.name for t in r.osms_free_tests]
+    assert not any("КТ органов грудной клетки" in n for n in names)
+    assert any("Скрининг рака лёгкого" in t.name and t.needs_doctor_validation
+               for t in r.osms_free_tests)
+
+
+def test_pregnancy_suppresses_radiation():
+    import re as _re
+    rad = _re.compile(r"(флюор|флг|рентген|маммограф|\bкт\b)", _re.IGNORECASE)
+    r = build_response(intake(age=52, gender=Gender.female, is_pregnant=True, smoking=True))
+    alltests = r.osms_free_tests + r.prime_addon_tests + (r.prime_package.tests if r.prime_package else [])
+    assert not [t.name for t in alltests if rad.search(t.name)]
+    assert all(not rad.search(s.title + s.details) for s in r.itinerary_timeline)
+
+
+def test_keyword_smoking():
+    from app.llm import keyword_extract
+    assert keyword_extract("я курю").smoking is True
+    assert keyword_extract("не курю").smoking is False

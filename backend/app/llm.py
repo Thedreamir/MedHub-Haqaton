@@ -30,7 +30,9 @@ _SYSTEM = (
     "Усталость -> symptoms [fatigue]; тяжесть после еды/изжога/живот -> gi; давление/сердце -> cardio; "
     "головная боль/головокружение -> neuro; кашель/одышка при нагрузке -> respiratory; жажда/вес -> endocrine. "
     "Диабет у родных -> family_history [diabetes]; инфаркт/инсульт у родных -> [ihd] или [stroke]. "
-    "Беременность -> is_pregnant true. Ребёнку N лет/мес -> child_age_months.")
+    "Беременность -> is_pregnant true. Ребёнку N лет/мес -> child_age_months. "
+    "Курит или вейпит -> smoking true; «не курю» -> smoking false. "
+    "Семейный анамнез — только родственники 1-й линии (родители, братья, сёстры).")
 
 _KW = [
     (r"за\s*грудин|болит\s*(?:в\s*)?груд|отда[её]т\s+в\s+(?:левую\s+)?руку|холодн\w+\s+пот", "red", RedFlag.chest_pain),
@@ -71,6 +73,10 @@ def keyword_extract(text: str) -> ExtractionPatch:
     m = re.search(r"(?:реб[её]нку|сыну|дочери|дочке)\s+(\d{1,2})\s*мес", low)
     if m:
         patch.child_age_months = int(m.group(1))
+    if re.search(r"не\s+курю", low):
+        patch.smoking = False
+    elif re.search(r"курю|курени|вейп|сигарет", low):
+        patch.smoking = True
     for pattern, kind, val in _KW:
         if re.search(pattern, low):
             getattr(patch, {"red": "red_flags", "sym": "symptoms", "fam": "family_history",
