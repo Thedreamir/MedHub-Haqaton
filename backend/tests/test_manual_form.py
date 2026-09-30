@@ -114,3 +114,40 @@ def test_keyword_floor_unions_into_llm_extraction(monkeypatch):
     i = r.json()["intake"]
     assert i["family_history"] == ["stroke"]
     assert i["symptoms"] == ["fatigue"]
+
+
+def _msg(payload: dict, session: str = "followup-t") -> str:
+    r = client.post("/api/intake/manual",
+                    json={"session_id": session, "intake": payload})
+    assert r.status_code == 200
+    return r.json()["assistant_message"]
+
+
+def test_symptoms_only_asks_age_and_gender():
+    """«Устаю» без данных: бот спрашивает возраст и пол, а не молчит."""
+    m = _msg({"symptoms": ["fatigue"], "state_version": 0})
+    assert "Сколько вам лет" in m and "пол" in m
+
+
+def test_complete_male_no_needless_questions():
+    """«42 муж устаю»: никаких лишних вопросов."""
+    m = _msg({"age": 42, "gender": "male", "symptoms": ["fatigue"],
+              "smoking": False, "state_version": 0})
+    assert "Уточню" not in m and "Сколько вам лет" not in m
+
+
+def test_fertile_age_female_asked_pregnancy():
+    """Женщина 30 без отметки о беременности: вопрос обязателен — от него
+    зависит исключение облучения и выбор пакета."""
+    m = _msg({"age": 30, "gender": "female", "state_version": 0})
+    assert "беремен" in m.lower()
+
+
+def test_pregnant_answered_stops_the_question():
+    m = _msg({"age": 30, "gender": "female", "is_pregnant": False, "state_version": 0})
+    assert "беремен" not in m.lower()
+
+
+def test_red_flag_never_waits_for_questions():
+    m = _msg({"red_flags": ["chest_pain"], "state_version": 0})
+    assert "103" in m and "Сколько вам лет" not in m

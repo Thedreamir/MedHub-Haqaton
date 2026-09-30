@@ -109,6 +109,23 @@ def _osms_layer(intake: UserIntakeData):
     return tests, health
 
 
+def followup_questions(intake: UserIntakeData) -> list[str]:
+    """Targeted уточняющие вопросы for load-bearing gaps. Max 3, priority order.
+    Emergency never reaches here (red flags short-circuit upstream)."""
+    q: list[str] = []
+    if intake.age is None:
+        q.append("Сколько вам лет?")
+    if _sex(intake) is None:
+        q.append("Уточните, пожалуйста, пол — от него зависит программа скринингов.")
+    if (_sex(intake) == "F" and intake.is_pregnant is None
+            and (intake.age is None or 15 <= intake.age <= 55)):
+        q.append("Есть ли беременность? Это влияет на выбор исследований — "
+                 "при ней мы исключаем облучение.")
+    if intake.age is not None and intake.age >= 18 and intake.smoking is None and len(q) < 2:
+        q.append("Курите или вейпите? Это влияет на скрининг лёгких.")
+    return q[:3]
+
+
 def _select_package(intake: UserIntakeData):
     """Return (PrimePackage, addon_tests). Pure rules + price overlay."""
     age, sex = intake.age, _sex(intake)

@@ -117,19 +117,24 @@ async def llm_extract(text: str) -> tuple[ExtractionPatch, str]:
     return keyword_extract(text), "degraded_keyword"
 
 
-def narrate(complete: bool, red: bool, missing: list[str], preliminary: bool = False) -> str:
+def narrate(complete: bool, red: bool, missing: list[str], preliminary: bool = False,
+            questions: list[str] | None = None) -> str:
     """Deterministic narrative. The engine decided; this only speaks."""
     if red:
         return ("Я вижу симптомы, которые нельзя откладывать на плановый чекап. "
                 "Пожалуйста, обратитесь за медицинской помощью сейчас — единый номер 103.")
+    questions = questions or []
+    if questions:
+        ask = "Уточню пару моментов: " + " ".join(questions)
+    else:
+        ask = ""
     if complete:
-        return ("Анкета собрана — справа ваш персональный план: что положено по ОСМС бесплатно, "
+        base = ("Анкета собрана — справа ваш персональный план: что положено по ОСМС бесплатно, "
                 "чем это усиливает пакет PRIME и как пройдёт один день в клинике.")
-    ask = {
-        "age": "Сколько вам лет?", "gender": "Уточните, пожалуйста, пол — от этого зависит программа скринингов.",
-    }
-    q = " ".join(ask[m] for m in missing if m in ask)
+        return base + (" " + ask + " Ответите — пересчитаю точнее." if ask else "")
     if preliminary:
-        return ("Данных хватило на предварительный план — справа пакет «Базовый». "
-                + (q + " Пересчитаю персонально." if q else ""))
-    return ("Понял вас, анкета справа уже заполняется. " + (q or "Расскажите ещё о жалобах или здоровье семьи."))
+        base = "Данных хватило на предварительный план — справа пакет «Базовый». "
+        return base + (ask + " Пересчитаю персонально." if ask else
+                       "Добавьте возраст и пол — пересчитаю персонально.")
+    return ("Понял вас, анкета справа уже заполняется. "
+            + (ask or "Расскажите ещё о жалобах или здоровье семьи."))

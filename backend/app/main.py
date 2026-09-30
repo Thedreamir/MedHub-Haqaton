@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, Response
 
-from .engine import build_response
+from .engine import build_response, followup_questions
 from .llm import keyword_extract, llm_extract, narrate
 from .report import build_report_pdf
 from .schemas import (ChatMessageRequest, ChatMessageResponse, CheckupPackageResponse,
@@ -50,9 +50,11 @@ def _finalize(intake: UserIntakeData, status: str) -> ChatMessageResponse:
     ])
     show_result = complete or bool(has_data)
     result = build_response(intake) if show_result else None
+    questions = [] if red else followup_questions(intake)
     return ChatMessageResponse(intake=intake,
                                assistant_message=narrate(complete, red, missing,
-                                                         preliminary=show_result and not complete),
+                                                         preliminary=show_result and not complete,
+                                                         questions=questions),
                                llm_status=status, result=result)
 
 
