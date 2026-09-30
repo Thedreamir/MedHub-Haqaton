@@ -329,12 +329,16 @@ def build_report_pdf(intake: UserIntakeData, result: CheckupPackageResponse) -> 
     pkg = result.prime_package
     if pkg:
         _package_card(f, intake, result)
-        f.append(Paragraph("Что входит в пакет", H2))
-        f.append(Paragraph("Каждый пункт — из официального состава программы, "
-                           "каталог PRIME «Чекап пакеты 2026»:", SMALL))
-        f.append(Spacer(1, 1 * mm))
-        for t in pkg.tests:
-            _item(f, t.name, t.why)
+        if pkg.tests:
+            f.append(Paragraph("Что входит в пакет", H2))
+            f.append(Paragraph("Каждый пункт — из официального состава программы, "
+                               "каталог PRIME «Чекап пакеты 2026»:", SMALL))
+            f.append(Spacer(1, 1 * mm))
+            for t in pkg.tests:
+                _item(f, t.name, t.why)
+        else:
+            f.append(Paragraph("Это программа наблюдения, а не разовый чекап: точный "
+                               "состав и график визитов подтверждает клиника при записи.", SMALL))
 
     _items(f, "Бесплатно по ОСМС/ГОБМП (0 ₸) — положено по приказу", result.osms_free_tests)
     _items(f, "Дополнительно по показаниям", result.prime_addon_tests)
