@@ -16,11 +16,12 @@ import httpx
 from .engine import build_response
 from .llm import keyword_extract
 from .schemas import CheckupPackageResponse, UserIntakeData
+from .store import PersistedDict
 
 _API = "https://api.telegram.org/bot"
 
-# chat_id -> session_id (демо: in-memory, как и сессии анкеты)
-CHATS: dict[int, str] = {}
+# chat_id -> session_id: SQLite на диске — переживает рестарт процесса
+CHATS: PersistedDict = PersistedDict("chats")
 
 
 def configured() -> bool:
@@ -222,7 +223,7 @@ def green_navigator(text: str, result: CheckupPackageResponse) -> str:
 
 _REMIND_INTERVAL_SEC = 6 * 3600          # как часто пересматривать карту
 _REMIND_RESEND_SEC = 7 * 24 * 3600        # повторный пуш не чаще раза в 7 дней
-_LAST_REMIND: dict[int, float] = {}      # chat_id -> ts последнего напоминания
+_LAST_REMIND: PersistedDict = PersistedDict("reminds")  # chat_id -> ts последнего напоминания
 
 
 def due_screenings(result: CheckupPackageResponse) -> list[str]:

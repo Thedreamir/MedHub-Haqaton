@@ -11,13 +11,17 @@ from .engine import build_response, followup_questions
 from .llm import keyword_extract, llm_extract, narrate
 from .report import build_report_pdf
 from . import tg
+from .store import PersistedDict
 from .schemas import (ChatMessageRequest, ChatMessageResponse, CheckupPackageResponse,
                       ManualIntakeRequest, UserIntakeData)
 
 app = FastAPI(title="Check-up Intelligence Constructor", docs_url="/docs")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-SESSIONS: dict[str, UserIntakeData] = {}
+SESSIONS: PersistedDict = PersistedDict(
+    "sessions",
+    dump=lambda intake: intake.model_dump_json(),
+    load=UserIntakeData.model_validate_json)
 
 
 @app.get("/health")

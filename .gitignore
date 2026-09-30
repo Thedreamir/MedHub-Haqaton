@@ -5,3 +5,4 @@ node_modules/
 .next/
 .pytest_cache/
 .DS_Store
+checkup_state.db
