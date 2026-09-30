@@ -17,6 +17,7 @@ interface State {
   offline: boolean;
   busy: boolean;
   send: (text: string) => Promise<void>;
+  submitManual: (draft: Intake) => Promise<boolean>;
   loadGolden: (i: number, label: string) => void;
   reset: () => void;
   hydrate: () => void;
@@ -28,7 +29,7 @@ const newSession = () =>
 
 export const useStore = create<State>((set, get) => ({
   sessionId: newSession(),
-  messages: [{ role: "assistant", text: "Здравствуйте! Расскажите о себе простыми словами: возраст, пол, что беспокоит, здоровье семьи. Анкета справа заполнится сама." }],
+  messages: [{ role: "assistant", text: "Здравствуйте! Расскажите о себе простыми словами: возраст, пол, что беспокоит, здоровье семьи. Анкета справа заполнится сама — или заполните её вручную и нажмите «Рассчитать чекап»." }],
   intake: null, result: null, llmStatus: null, offline: false, busy: false,
 
   send: async (text) => {
@@ -52,6 +53,35 @@ export const useStore = create<State>((set, get) => ({
         busy: false, offline: true,
         messages: [...s.messages, { role: "assistant", text: "Сеть недоступна — работаю офлайн. Ниже можно открыть золотой демо-кейс, он загрузится мгновенно из кэша." }],
       }));
+    }
+  },
+
+  submitManual: async (draft) => {
+    if (get().busy) return false;
+    set({ busy: true });
+    try {
+      // Safety: red flags are never editable by hand - always re-attach the
+      // latest server/chat red-flag state so a manual submit can't drop one.
+      const body = { ...draft, red_flags: get().intake?.red_flags ?? draft.red_flags };
+      const r = await fetch(`${API}/api/intake/manual`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error(String(r.status));
+      const data: ChatResponse = await r.json();
+      if (typeof localStorage !== "undefined") localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+      set((s) => ({
+        busy: false, offline: false, intake: data.intake, result: data.result,
+        llmStatus: data.llm_status,
+        messages: [...s.messages, { role: "assistant", text: data.assistant_message }],
+      }));
+      return true;
+    } catch {
+      set((s) => ({
+        busy: false, offline: true,
+        messages: [...s.messages, { role: "assistant", text: "Сеть недоступна — анкету не отправить. Попробуйте ещё раз или откройте золотой демо-кейс из кэша." }],
+      }));
+      return false;
     }
   },
 
