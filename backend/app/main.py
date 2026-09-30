@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 
 from .engine import build_response
-from .llm import llm_extract, narrate
+from .llm import keyword_extract, llm_extract, narrate
 from .schemas import (ChatMessageRequest, ChatMessageResponse, CheckupPackageResponse,
                       UserIntakeData)
 
@@ -48,6 +48,11 @@ def _finalize(intake: UserIntakeData, status: str) -> ChatMessageResponse:
 async def intake_message(req: ChatMessageRequest):
     intake = SESSIONS.get(req.session_id, UserIntakeData(state_version=0))
     patch, status = await llm_extract(req.text)
+    # Safety floor: deterministic keyword red-flag scan unions into every
+    # extraction, so an LLM miss can never silence an emergency.
+    safety = keyword_extract(req.text)
+    if safety.red_flags:
+        patch.red_flags = sorted(set(patch.red_flags) | set(safety.red_flags))
     intake = _merge(intake, patch)
     SESSIONS[req.session_id] = intake
     return _finalize(intake, status)

@@ -16,7 +16,7 @@ from .schemas import (ExtractionPatch, FamilyCondition, Gender, RedFlag,
 
 TIMEOUT = float(os.getenv("LLM_TIMEOUT_S", "12"))
 MAX_RETRIES = int(os.getenv("LLM_MAX_RETRIES", "1"))
-MODELS = [os.getenv("LLM_MODEL", "qwen/qwen3-32b:free")] + [
+MODELS = [os.getenv("LLM_MODEL", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free")] + [
     m.strip() for m in os.getenv("LLM_FALLBACK_MODELS", "").split(",") if m.strip()]
 
 _SYSTEM = (
@@ -63,7 +63,7 @@ def keyword_extract(text: str) -> ExtractionPatch:
         patch.gender = Gender.male
     elif re.search(r"\bженщин|я\s+жен|\bжен\b", low):
         patch.gender = Gender.female
-    if re.search(r"беременн", low):
+    if re.search(r"беременн", low) and not re.search(r"не\s+беремен", low):
         patch.is_pregnant = True
     m = re.search(r"(?:реб[её]нку|сыну|дочери|дочке)\s+(\d{1,2})\s*(?:год|года|лет)", low)
     if m:

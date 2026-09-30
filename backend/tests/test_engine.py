@@ -73,3 +73,15 @@ def test_no_diagnosis_strings_in_output():
     blob = r.model_dump_json().lower()
     for bad in ("диагноз", "лечени", "назначаем"):
         assert bad not in blob
+
+
+def test_keyword_red_flag_chest_pain_ru():
+    from app.llm import keyword_extract
+    p = keyword_extract("Сильная давящая боль за грудиной, отдаёт в левую руку")
+    assert p.red_flags, "keyword safety floor must catch chest pain phrasing"
+
+
+def test_keyword_pregnancy_negation_ignored():
+    from app.llm import keyword_extract
+    p = keyword_extract("Мне 50 лет, женщина, не беременна")
+    assert p.is_pregnant is not True
