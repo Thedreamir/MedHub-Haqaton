@@ -214,7 +214,7 @@ async def reminder_loop(sessions: dict) -> None:
 # Цепочка бесплатных моделей; первая ответившая побеждает. Веб-чат на Nemotron не трогаем.
 _TG_MODELS = [m.strip() for m in os.environ.get(
     "TG_LLM_MODELS",
-    "qwen/qwen3-32b:free,qwen/qwen-2.5-72b-instruct:free,qwen/qwen3-235b-a22b:free"
+    "qwen/qwen3.8-27b:free,qwen/qwen3-32b:free,qwen/qwen-2.5-72b-instruct:free"
 ).split(",") if m.strip()]
 
 _SYSTEM = (
@@ -303,6 +303,7 @@ async def llm_selftest() -> dict:
     key = os.environ.get("OPENROUTER_API_KEY", "")
     if not key:
         return {"ok": False, "reason": "no OPENROUTER_API_KEY", "models": _TG_MODELS}
+    errors = {}
     async with httpx.AsyncClient(timeout=30) as c:
         for model in _TG_MODELS:
             t0 = time.time()
@@ -315,9 +316,11 @@ async def llm_selftest() -> dict:
                 if r.status_code == 200:
                     return {"ok": True, "model": model,
                             "latency_ms": int((time.time() - t0) * 1000)}
-            except Exception:
-                continue
-    return {"ok": False, "reason": "all models failed", "models": _TG_MODELS}
+                errors[model] = f"http {r.status_code}: {r.text[:120]}"
+            except Exception as e:
+                errors[model] = type(e).__name__
+    return {"ok": False, "reason": "all models failed", "models": _TG_MODELS,
+            "errors": errors}
 
 _BIND_HINT = ("Сначала пройдите анкету на сайте конструктора и нажмите "
               "«Напоминания в Telegram» на странице результата — бот привяжется "
