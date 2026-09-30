@@ -146,7 +146,8 @@ def _select_package(intake: UserIntakeData):
         pkg = RULES["packages"][2]
         key = "extended_m" if sex == "M" else "extended_f"
     price = PRICES[key]
-    exams = pkg.get("male_exams" if sex == "M" else "female_exams") or pkg.get("exams", [])
+    exams = list(pkg.get("exams") or []) + list(
+        pkg.get("male_exams" if sex == "M" else "female_exams") or [])
     note = price.get("discrepancy_note")
     if cardio:
         note = (note + " " if note else "") + heart_note.strip()

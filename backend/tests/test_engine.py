@@ -114,3 +114,16 @@ def test_keyword_smoking():
     from app.llm import keyword_extract
     assert keyword_extract("я курю").smoking is True
     assert keyword_extract("не курю").smoking is False
+
+
+def test_package_renders_full_catalog_composition():
+    """Пакет собирается из общего + полового составов по официальному каталогу PRIME."""
+    m42 = build_response(intake(age=42, gender=Gender.male)).prime_package
+    assert len(m42.tests) >= 10
+    joined = " ".join(t.name for t in m42.tests)
+    assert "6 онкомаркеров" in joined or "Онкомаркеры (6)" in joined
+    assert "Колоноскопия" in joined or "колоноскопия" in joined
+    f35 = build_response(intake(age=35, gender=Gender.female)).prime_package
+    fj = " ".join(t.name for t in f35.tests)
+    assert "ПАП-тест" in fj and "гинеколог" in fj.lower()
+    assert len(f35.tests) >= 10
