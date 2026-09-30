@@ -125,6 +125,7 @@ export const useStore = create<State>((set, get) => ({
 }));
 
 export const reportHref = () => `${API}/api/report/${useStore.getState().sessionId}`;
+export const tgHref = () => `${API}/api/tg/start/${useStore.getState().sessionId}`;
 
 export function buildIcsClientSide(): string {
   const d = new Date(Date.now() + 86400000);

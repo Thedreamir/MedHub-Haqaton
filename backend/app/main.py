@@ -2,13 +2,14 @@ import os
 import uuid
 from datetime import date, timedelta
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse, Response
+from fastapi.responses import PlainTextResponse, RedirectResponse, Response
 
 from .engine import build_response, followup_questions
 from .llm import keyword_extract, llm_extract, narrate
 from .report import build_report_pdf
+from . import tg
 from .schemas import (ChatMessageRequest, ChatMessageResponse, CheckupPackageResponse,
                       ManualIntakeRequest, UserIntakeData)
 
@@ -112,3 +113,23 @@ def report_pdf(session_id: str):
     pdf = build_report_pdf(intake, build_response(intake))
     return Response(pdf, media_type="application/pdf",
                     headers={"Content-Disposition": "attachment; filename=checkup-plan.pdf"})
+
+@app.get("/api/tg/health")
+def tg_health():
+    return {"configured": tg.configured(), "username": tg.bot_username()}
+
+
+@app.get("/api/tg/start/{session_id}")
+def tg_start(session_id: str):
+    user = tg.bot_username()
+    if not user:
+        raise HTTPException(503, "Telegram-бот ещё не настроен")
+    return RedirectResponse(f"https://t.me/{user}?start={session_id}")
+
+
+@app.post("/api/tg/webhook")
+async def tg_webhook(request: Request):
+    if not tg.configured():
+        return {"ok": True, "configured": False}
+    await tg.handle_update(await request.json(), SESSIONS)
+    return {"ok": True}

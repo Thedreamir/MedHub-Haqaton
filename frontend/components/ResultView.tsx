@@ -1,7 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
-import { ShieldAlert, BadgeCheck, Wallet, Route, Map, BellRing, Phone, Mail, Stethoscope, Info, FileDown } from "lucide-react";
-import { useStore, downloadIcs, reportHref } from "@/lib/store";
+import { ShieldAlert, BadgeCheck, Wallet, Route, Map, BellRing, Phone, Mail, Stethoscope, Info, FileDown, Send } from "lucide-react";
+import { useStore, downloadIcs, reportHref, tgHref } from "@/lib/store";
 import type { TestItem } from "@/lib/types";
 
 const fmt = (n: number) => n.toLocaleString("ru-KZ").replace(/,/g, " ") + " ₸";
@@ -138,8 +138,12 @@ export default function ResultView() {
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald text-white font-medium hover:opacity-90 transition text-sm">
               <FileDown className="w-4 h-4" /> Скачать отчёт (PDF)
             </a>
+            <a href={tgHref()} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2AABEE] text-white font-medium hover:opacity-90 transition text-sm">
+              <Send className="w-4 h-4" /> Напоминания в Telegram
+            </a>
           </div>
-          <p className="text-[11px] text-gray-400 mt-3">Roadmap: живой Telegram-бот с напоминаниями о подготовке и повторном скрининге.</p>
+          <p className="text-[11px] text-gray-400 mt-3">Живой Telegram-бот: привяжет чат к вашему плану, ответит по пакету и напомнит о повторном скрининге.</p>
         </div>
       </div>
 
