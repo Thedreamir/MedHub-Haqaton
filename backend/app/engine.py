@@ -115,8 +115,9 @@ def _select_package(intake: UserIntakeData):
     cardio = (SymptomCluster.cardio in intake.symptoms
               or bool(_family_keys(intake) & {"early_cvd"})
               or ChronicCondition.hypertension in intake.chronic_conditions)
+    heart_price = f"{PRICES['heart']['price_kzt']:,}".replace(",", " ")
     heart_note = (" При кардио-направлении доступен пакет «СЕРДЦЕ» — "
-                  f"{PRICES['heart']['price_kzt']:,} ₸. {PRICES['heart']['composition_note']}").replace(",", " ")
+                  f"{heart_price} ₸. {PRICES['heart']['composition_note']}")
 
     if intake.is_pregnant:
         p = PRICES["pregnancy"]
