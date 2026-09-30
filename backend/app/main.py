@@ -9,7 +9,7 @@ from fastapi.responses import PlainTextResponse
 from .engine import build_response
 from .llm import keyword_extract, llm_extract, narrate
 from .schemas import (ChatMessageRequest, ChatMessageResponse, CheckupPackageResponse,
-                      UserIntakeData)
+                      ManualIntakeRequest, UserIntakeData)
 
 app = FastAPI(title="Check-up Intelligence Constructor", docs_url="/docs")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -48,20 +48,24 @@ def _finalize(intake: UserIntakeData, status: str) -> ChatMessageResponse:
 async def intake_message(req: ChatMessageRequest):
     intake = SESSIONS.get(req.session_id, UserIntakeData(state_version=0))
     patch, status = await llm_extract(req.text)
-    # Safety floor: deterministic keyword red-flag scan unions into every
-    # extraction, so an LLM miss can never silence an emergency.
+    # Safety floor: deterministic keyword scan unions into every extraction,
+    # so an LLM miss can never silence an emergency or drop an explicit
+    # medical term from a terse message.
     safety = keyword_extract(req.text)
-    if safety.red_flags:
-        patch.red_flags = sorted(set(patch.red_flags) | set(safety.red_flags))
+    for field in ("red_flags", "symptoms", "family_history", "chronic_conditions"):
+        extra = getattr(safety, field)
+        if extra:
+            setattr(patch, field, sorted(set(getattr(patch, field)) | set(extra)))
     intake = _merge(intake, patch)
     SESSIONS[req.session_id] = intake
     return _finalize(intake, status)
 
 
 @app.post("/api/intake/manual", response_model=ChatMessageResponse)
-async def intake_manual(intake: UserIntakeData):
+async def intake_manual(req: ManualIntakeRequest):
+    intake = req.intake
     intake.state_version += 1
-    SESSIONS[str(uuid.uuid4())] = intake
+    SESSIONS[req.session_id] = intake  # same session the chat writes to
     return _finalize(intake, "manual_form")
 
 

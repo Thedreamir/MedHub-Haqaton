@@ -112,6 +112,14 @@ class ExtractionPatch(StrictModel):
     child_age_months: Optional[int] = Field(default=None, ge=0, le=17 * 12)
 
 
+class ManualIntakeRequest(StrictModel):
+    """Manual анкета submit: the full form plus the chat session it belongs to,
+    so chat and manual entry write into ONE shared server-side state."""
+
+    session_id: str
+    intake: "UserIntakeData"
+
+
 class UserIntakeData(StrictModel):
     """Server-canonical анкета. The only object the frontend ever renders.
     Built/updated by the backend after re-validating every ExtractionPatch."""

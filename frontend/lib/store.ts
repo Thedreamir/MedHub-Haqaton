@@ -62,10 +62,10 @@ export const useStore = create<State>((set, get) => ({
     try {
       // Safety: red flags are never editable by hand - always re-attach the
       // latest server/chat red-flag state so a manual submit can't drop one.
-      const body = { ...draft, red_flags: get().intake?.red_flags ?? draft.red_flags };
+      const intake = { ...draft, red_flags: get().intake?.red_flags ?? draft.red_flags };
       const r = await fetch(`${API}/api/intake/manual`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ session_id: get().sessionId, intake }),
       });
       if (!r.ok) throw new Error(String(r.status));
       const data: ChatResponse = await r.json();
