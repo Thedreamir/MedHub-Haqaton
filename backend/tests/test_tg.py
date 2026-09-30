@@ -29,7 +29,8 @@ def test_start_binds_session_and_summarizes(monkeypatch):
     run(tg.handle_update(upd(777, "/start s1"), sessions))
     assert tg.CHATS[777] == "s1"
     body = fake.sent[0][1]
-    assert "467 100" in body and "привязал" in body
+    assert "привязал" in body and "Умею:" in body and "Уже знаю о вас:" in body \
+        and "Действия:" in body and "42 лет" in body
 
 
 def test_start_without_session_gives_bind_hint(monkeypatch):
@@ -122,3 +123,55 @@ def test_context_card_contains_facts():
     card = tg._context_card(UserIntakeData(state_version=1, age=42, gender=Gender.male),
                             _result(), "скачет давление")
     assert "467 100" in card and "ОСМС" in card and "+7 747 094 26 21" in card
+
+
+def test_plan_command_renders_statuses(monkeypatch):
+    fake = FakeSend(monkeypatch)
+    tg.CHATS.clear()
+    sessions = {"s1": UserIntakeData(state_version=1, age=42, gender=Gender.male)}
+    run(tg.handle_update(upd(777, "/start s1"), sessions))
+    fake.sent.clear()
+    run(tg.handle_update(upd(777, "/plan"), sessions))
+    body = fake.sent[0][1]
+    assert "Ваш чекап-план (42 лет, мужчина)" in body
+    assert ("🔴" in body or "➡️" in body or "✅" in body)
+    assert "467 100" in body and "записаться" in body
+
+
+def test_plan_unbound_gives_hint(monkeypatch):
+    fake = FakeSend(monkeypatch)
+    tg.CHATS.clear()
+    run(tg.handle_update(upd(31337, "/plan"), {}))
+    assert "анкет" in fake.sent[0][1].lower()
+
+
+def test_booking_request_with_time_window():
+    out = tg.booking_request(UserIntakeData(state_version=1, age=42, gender=Gender.male),
+                             _result(), "хочу записаться вечером после работы")
+    assert "Удобное время: вечером" in out and "467 100" in out
+    assert "подтвердит контакт-центр" in out          # никаких выдуманных слотов
+    assert "salem@primegc.kz" in out
+
+
+def test_booking_request_without_time_window():
+    out = tg.booking_request(UserIntakeData(state_version=1, age=42, gender=Gender.male),
+                             _result(), "записаться")
+    assert "Удобное время" not in out
+
+
+def test_scenario_matrix_size_and_prime_routes():
+    assert len(tg._SCENARIOS) >= 20
+    # жалоба вне ОСМС-скрининга получает PRIME-маршрут с услугой в заявке
+    out = tg.green_navigator("болит поясница уже неделю", _result())
+    assert "PRIME" in out and "МРТ" in out and "Здравствуйте! Хочу записаться" in out
+    assert "Это не диагноз" in out
+
+
+def test_reminder_has_prep_booking_and_disclaimer(monkeypatch):
+    fake = FakeSend(monkeypatch)
+    tg._LAST_REMIND.clear()
+    intake = UserIntakeData(state_version=1, age=42, gender=Gender.male)
+    assert run(tg.remind_once(777, intake)) is True
+    body = fake.sent[0][1]
+    assert "Срок подошёл" in body and "натощак" in body and "записаться" in body
+    assert "Это не диагноз" in body
