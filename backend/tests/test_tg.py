@@ -175,3 +175,8 @@ def test_reminder_has_prep_booking_and_disclaimer(monkeypatch):
     body = fake.sent[0][1]
     assert "Срок подошёл" in body and "натощак" in body and "записаться" in body
     assert "Это не диагноз" in body
+
+
+def test_plan_and_medical_replies_carry_not_diagnosis():
+    plan = tg.render_plan(UserIntakeData(state_version=1, age=42, gender=Gender.male), _result())
+    assert "Это не диагноз" in plan

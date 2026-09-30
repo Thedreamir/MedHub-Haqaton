@@ -80,7 +80,8 @@ def _answer(text: str, intake: UserIntakeData, result: CheckupPackageResponse) -
     if any(w in t for w in ("входит", "состав", "что сда", "какие анализ", "что буду")):
         if pkg and pkg.tests:
             names = "\n".join(f"• {x.name}" for x in pkg.tests[:12])
-            return f"В пакет «{pkg.name}» входит:\n{names}"
+            return (f"В пакет «{pkg.name}» входит:\n{names}"
+                    "\n\nЭто не диагноз — состав подтверждает врач.")
         return "Точный состав программы подтверждает клиника при записи: +7 747 094 26 21."
     if any(w in t for w in ("маршрут", "как прой", "когда при", "как пройд", "расписан")):
         steps = "\n".join(f"• {s.block}: {s.details}" for s in result.itinerary_timeline)
@@ -94,7 +95,8 @@ def _answer(text: str, intake: UserIntakeData, result: CheckupPackageResponse) -
     if any(w in t for w in ("подготов", "натощак", "можно ли есть", "диета")):
         prep = [s for s in result.itinerary_timeline if "подготов" in s.block.lower()]
         if prep:
-            return "\n".join(f"{s.block}: {s.details}" for s in prep)
+            return ("\n".join(f"{s.block}: {s.details}" for s in prep)
+                    + "\n\nЭто не диагноз — подготовку подтверждает клиника.")
         return "Подготовку подтверждает клиника при записи: +7 747 094 26 21."
     # Свободный текст без явной темы — это жалоба/контекст: Зелёный навигатор.
     return green_navigator(text, result)
@@ -418,6 +420,7 @@ def render_plan(intake: UserIntakeData, result: CheckupPackageResponse) -> str:
         lines.append(f"🆓 По ОСМС бесплатно: {len(result.osms_free_tests)} позиций.")
     lines.append("Записаться: +7 747 094 26 21 · или напишите «записаться» — "
                  "подготовлю текст заявки.")
+    lines.append("Это не диагноз — сроки и состав подтверждает врач.")
     return "\n".join(lines)
 
 
