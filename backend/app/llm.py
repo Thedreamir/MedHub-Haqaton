@@ -117,7 +117,7 @@ async def llm_extract(text: str) -> tuple[ExtractionPatch, str]:
     return keyword_extract(text), "degraded_keyword"
 
 
-def narrate(complete: bool, red: bool, missing: list[str]) -> str:
+def narrate(complete: bool, red: bool, missing: list[str], preliminary: bool = False) -> str:
     """Deterministic narrative. The engine decided; this only speaks."""
     if red:
         return ("Я вижу симптомы, которые нельзя откладывать на плановый чекап. "
@@ -129,4 +129,7 @@ def narrate(complete: bool, red: bool, missing: list[str]) -> str:
         "age": "Сколько вам лет?", "gender": "Уточните, пожалуйста, пол — от этого зависит программа скринингов.",
     }
     q = " ".join(ask[m] for m in missing if m in ask)
+    if preliminary:
+        return ("Данных хватило на предварительный план — справа пакет «Базовый». "
+                + (q + " Пересчитаю персонально." if q else ""))
     return ("Понял вас, анкета справа уже заполняется. " + (q or "Расскажите ещё о жалобах или здоровье семьи."))

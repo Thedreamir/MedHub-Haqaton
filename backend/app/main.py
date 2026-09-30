@@ -39,8 +39,19 @@ def _finalize(intake: UserIntakeData, status: str) -> ChatMessageResponse:
     red = bool(intake.red_flags)
     missing = [f for f in ("age", "gender") if getattr(intake, f) is None]
     complete = red or not missing
-    result = build_response(intake) if complete else None
-    return ChatMessageResponse(intake=intake, assistant_message=narrate(complete, red, missing),
+    # Any real data already assembles a concrete package: age+sex missing falls
+    # back to the preliminary «Базовый» (111 020 ₸) instead of an empty panel.
+    has_data = any([
+        intake.age is not None, intake.gender is not None,
+        intake.symptoms, intake.family_history, intake.chronic_conditions,
+        intake.is_pregnant is not None, intake.child_age_months is not None,
+        intake.smoking is not None,
+    ])
+    show_result = complete or bool(has_data)
+    result = build_response(intake) if show_result else None
+    return ChatMessageResponse(intake=intake,
+                               assistant_message=narrate(complete, red, missing,
+                                                         preliminary=show_result and not complete),
                                llm_status=status, result=result)
 
 

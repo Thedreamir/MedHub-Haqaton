@@ -134,7 +134,10 @@ def _select_package(intake: UserIntakeData):
                             source="PRIME") for e in pkg.get("exams", [])]), []
     if age is None or sex is None:
         p = PRICES["base"]
-        return PrimePackage(package_id="prime_base", name=p["name"], price_kzt=p["price_kzt"]), []
+        return PrimePackage(
+            package_id="prime_base", name=p["name"], price_kzt=p["price_kzt"],
+            composition_note=("Предварительный пакет: добавьте возраст и пол — пересчитаем "
+                              "персонально. Состав подтверждает клиника.")), []
 
     if age <= 39:
         pkg = RULES["packages"][1]

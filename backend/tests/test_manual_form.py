@@ -29,7 +29,9 @@ def test_manual_complete_intake_returns_result():
     assert d["result"]["prime_package"]["price_kzt"] == 467100
 
 
-def test_manual_incomplete_intake_asks_for_missing():
+def test_manual_partial_intake_gets_preliminary_package():
+    """Symptoms only (no age/gender) must still assemble a concrete package:
+    preliminary «Базовый» 111 020 ₸ with a note, not an empty panel."""
     r = client.post("/api/intake/manual", json={"session_id": "t-manual-2", "intake": {
         "state_version": 0, "age": None, "gender": None,
         "symptoms": ["fatigue"], "family_history": [], "chronic_conditions": [],
@@ -37,8 +39,22 @@ def test_manual_incomplete_intake_asks_for_missing():
     }})
     assert r.status_code == 200
     d = r.json()
-    assert d["result"] is None
-    assert "возраст" in d["assistant_message"].lower() or "пол" in d["assistant_message"].lower()
+    assert d["result"] is not None and not d["result"]["is_emergency"]
+    pkg = d["result"]["prime_package"]
+    assert pkg["package_id"] == "prime_base" and pkg["price_kzt"] == 111020
+    assert "Предварительный" in (pkg["composition_note"] or "")
+    msg = d["assistant_message"].lower()
+    assert "предварительный" in msg and ("возраст" in msg or "пол" in msg)
+
+
+def test_manual_empty_intake_no_result():
+    r = client.post("/api/intake/manual", json={"session_id": "t-manual-5", "intake": {
+        "state_version": 0, "age": None, "gender": None,
+        "symptoms": [], "family_history": [], "chronic_conditions": [],
+        "red_flags": [], "is_pregnant": None, "child_age_months": None,
+    }})
+    assert r.status_code == 200
+    assert r.json()["result"] is None
 
 
 def test_manual_red_flag_emergency_no_commerce():
