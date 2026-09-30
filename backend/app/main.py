@@ -2,12 +2,13 @@ import os
 import uuid
 from datetime import date, timedelta
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, Response
 
 from .engine import build_response
 from .llm import keyword_extract, llm_extract, narrate
+from .report import build_report_pdf
 from .schemas import (ChatMessageRequest, ChatMessageResponse, CheckupPackageResponse,
                       ManualIntakeRequest, UserIntakeData)
 
@@ -98,3 +99,14 @@ async def reminder_ics(intake: UserIntakeData):
         "END:VEVENT", "END:VCALENDAR", ""])
     return PlainTextResponse(ics, media_type="text/calendar",
                              headers={"Content-Disposition": "attachment; filename=checkup-reminder.ics"})
+
+
+@app.get("/api/report/{session_id}")
+def report_pdf(session_id: str):
+    """Скачиваемый персональный отчёт: анкета + пакет + обоснование каждого пункта."""
+    intake = SESSIONS.get(session_id)
+    if intake is None:
+        raise HTTPException(404, "session not found — заполните анкету заново")
+    pdf = build_report_pdf(intake, build_response(intake))
+    return Response(pdf, media_type="application/pdf",
+                    headers={"Content-Disposition": "attachment; filename=checkup-plan.pdf"})

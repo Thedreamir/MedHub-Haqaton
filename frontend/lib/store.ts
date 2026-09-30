@@ -114,6 +114,8 @@ export const useStore = create<State>((set, get) => ({
   },
 }));
 
+export const reportHref = () => `${API}/api/report/${useStore.getState().sessionId}`;
+
 export function buildIcsClientSide(): string {
   const d = new Date(Date.now() + 86400000);
   const dt = d.toISOString().slice(0, 10).replace(/-/g, "");

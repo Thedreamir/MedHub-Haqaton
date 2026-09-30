@@ -1,7 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
-import { ShieldAlert, BadgeCheck, Wallet, Route, Map, BellRing, Phone, Mail, Stethoscope, Info } from "lucide-react";
-import { useStore, downloadIcs } from "@/lib/store";
+import { ShieldAlert, BadgeCheck, Wallet, Route, Map, BellRing, Phone, Mail, Stethoscope, Info, FileDown } from "lucide-react";
+import { useStore, downloadIcs, reportHref } from "@/lib/store";
 import type { TestItem } from "@/lib/types";
 
 const fmt = (n: number) => n.toLocaleString("ru-KZ").replace(/,/g, " ") + " ₸";
@@ -127,12 +127,18 @@ export default function ResultView() {
           </div>
           <p className="text-sm text-gray-600">{result.reminder?.message_preview}</p>
           <p className="text-xs text-gray-400 mt-1">{result.reminder?.due_in}</p>
-          {intake && (
-            <button onClick={() => downloadIcs(intake)}
-              className="mt-4 self-start px-5 py-2.5 rounded-xl border border-emerald text-emerald font-medium hover:bg-emerald-mist transition text-sm">
-              Добавить в календарь (.ics)
-            </button>
-          )}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {intake && (
+              <button onClick={() => downloadIcs(intake)}
+                className="px-5 py-2.5 rounded-xl border border-emerald text-emerald font-medium hover:bg-emerald-mist transition text-sm">
+                Добавить в календарь (.ics)
+              </button>
+            )}
+            <a href={reportHref()} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald text-white font-medium hover:opacity-90 transition text-sm">
+              <FileDown className="w-4 h-4" /> Скачать отчёт (PDF)
+            </a>
+          </div>
           <p className="text-[11px] text-gray-400 mt-3">Roadmap: живой Telegram-бот с напоминаниями о подготовке и повторном скрининге.</p>
         </div>
       </div>
