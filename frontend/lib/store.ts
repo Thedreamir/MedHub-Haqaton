@@ -92,6 +92,16 @@ export const useStore = create<State>((set, get) => ({
       offline: false, intake: data.intake, result: data.result, llmStatus: "cached_golden",
       messages: [...s.messages, { role: "user", text: label }, { role: "assistant", text: data.assistant_message }],
     }));
+    // Warm the backend session so server-side features (PDF report) work after
+    // a cached demo; silently refresh the result with fresh engine output.
+    fetch(`${API}/api/intake/manual`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: get().sessionId, intake: data.intake }),
+    }).then((r) => (r.ok ? r.json() : null))
+      .then((fresh: ChatResponse | null) => {
+        if (fresh) set({ intake: fresh.intake, result: fresh.result });
+      })
+      .catch(() => { /* offline: golden stays */ });
   },
 
   reset: () => {

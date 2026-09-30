@@ -14,10 +14,11 @@
    "red_flags": [],
    "is_pregnant": null,
    "child_age_months": null,
+   "smoking": null,
    "state_version": 1
   },
-  "assistant_message": "Анкета собрана — справа ваш персональный план: что положено по ОСМС бесплатно, чем это усиливает пакет PRIME и как пройдёт один день в клинике.",
-  "llm_status": "degraded_keyword",
+  "assistant_message": "Анкета собрана — справа ваш персональный план: что положено по ОСМС бесплатно, чем это усиливает пакет PRIME и как пройдёт один день в клинике. Уточню пару моментов: Курите или вейпите? Это влияет на скрининг лёгких. Ответите — пересчитаю точнее.",
+  "llm_status": "cached_golden",
   "result": {
    "is_emergency": false,
    "emergency_banner": null,
@@ -88,29 +89,71 @@
    ],
    "prime_package": {
     "package_id": "prime_extended_m",
-    "name": "Мужской расширенный чекап (после 40)",
+    "name": "Check-up «Мужской 40+»",
     "price_kzt": 467100,
     "composition_note": null,
     "discrepancy_note": null,
     "tests": [
      {
-      "name": "Консультация уролога",
+      "name": "Консультация врача-куратора (первичная и итоговая)",
       "why": "входит в пакет PRIME",
       "payment": "paid_prime",
       "source": "PRIME",
       "needs_doctor_validation": false
      },
      {
-      "name": "Консультация офтальмолога",
+      "name": "КТ органов грудной клетки (низкодозная, без контраста)",
       "why": "входит в пакет PRIME",
       "payment": "paid_prime",
       "source": "PRIME",
       "needs_doctor_validation": false
      },
      {
-      "name": "Гликированный гемоглобин",
-      "why": "пересекается со скринингом — по ОСМС 0 ₸",
-      "payment": "free_gobmp",
+      "name": "ЭКГ, ЭхоКГ, тредмил-тест, тонометрия, кераторефрактометрия",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "УЗИ брюшной полости и щитовидной железы",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "УЗДГ сосудов шеи, артерий и вен нижних конечностей",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "Видеогастродуоденоскопия (ВГДС) и видеоколоноскопия с медикаментозным сном, консультация анестезиолога",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "ХЕЛПИЛ-тест",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "Лаборатория (40+ исследований): общие анализы, расширенная биохимия, липидный профиль с гомоцистеином, коагулограмма, гормоны щитовидной железы с анти-ТПО, витамины и электролиты, маркеры воспаления, гепатиты B и C",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "Консультация уролога и офтальмолога (по показаниям)",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
       "source": "PRIME",
       "needs_doctor_validation": false
      },
@@ -122,14 +165,14 @@
       "needs_doctor_validation": false
      },
      {
-      "name": "УЗИ предстательной железы (ТРУЗИ) и мошонки",
+      "name": "ТРУЗИ предстательной железы, УЗИ мочевого пузыря и мошонки",
       "why": "входит в пакет PRIME",
       "payment": "paid_prime",
       "source": "PRIME",
       "needs_doctor_validation": false
      },
      {
-      "name": "УЗИ брюшной полости и щитовидной железы",
+      "name": "Онкомаркеры (6): S100, CYFRA 21-1, CA 72-4, АФП, CA 19-9, РЭА",
       "why": "входит в пакет PRIME",
       "payment": "paid_prime",
       "source": "PRIME",
@@ -188,7 +231,7 @@
      "block": "День подготовки",
      "time_window": null,
      "title": "Подготовка к чекапу",
-     "details": "Анализы крови — строго натощак. Подготовку подтверждает клиника при записи."
+     "details": "Колоноскопия — очищение кишечника; Анализы крови — строго натощак. Подготовку подтверждает клиника при записи."
     },
     {
      "order": 2,
@@ -202,7 +245,7 @@
      "block": "После визита",
      "time_window": null,
      "title": "Результаты и заключение",
-     "details": "Результаты — на следующий день. Заключение врача-куратора через 2–3 дня."
+     "details": "Результаты — на следующий день. Заключение врача-куратора на 2-й день (по каталогу PRIME)."
     }
    ],
    "health_map": [
@@ -216,7 +259,7 @@
     {
      "item": "Заключение врача-куратора",
      "status": "next_step",
-     "when": "через 2–3 дня после визита",
+     "when": "на 2-й день после визита (по каталогу PRIME)",
      "why": "итог маршрута",
      "source": "PRIME"
     },
@@ -278,10 +321,11 @@
    "red_flags": [],
    "is_pregnant": null,
    "child_age_months": null,
+   "smoking": null,
    "state_version": 1
   },
-  "assistant_message": "Анкета собрана — справа ваш персональный план: что положено по ОСМС бесплатно, чем это усиливает пакет PRIME и как пройдёт один день в клинике.",
-  "llm_status": "degraded_keyword",
+  "assistant_message": "Анкета собрана — справа ваш персональный план: что положено по ОСМС бесплатно, чем это усиливает пакет PRIME и как пройдёт один день в клинике. Уточню пару моментов: Есть ли беременность? Это влияет на выбор исследований — при ней мы исключаем облучение. Курите или вейпите? Это влияет на скрининг лёгких. Ответите — пересчитаю точнее.",
+  "llm_status": "cached_golden",
   "result": {
    "is_emergency": false,
    "emergency_banner": null,
@@ -310,11 +354,67 @@
    ],
    "prime_package": {
     "package_id": "prime_basic_f",
-    "name": "Женский базовый чекап (до 40 лет)",
+    "name": "Check-up «Женский до 40 лет»",
     "price_kzt": 358020,
     "composition_note": null,
     "discrepancy_note": null,
     "tests": [
+     {
+      "name": "Консультация врача-куратора (первичная и итоговая)",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "Консультация офтальмолога (тонометрия, кераторефрактометрия)",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "КТ органов грудной клетки (низкодозная, без контраста)",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "ЭКГ с расшифровкой, ЭхоКГ, тредмил-тест",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "УЗИ брюшной полости и щитовидной железы",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "УЗДГ сосудов шеи, артерий и вен нижних конечностей",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "Видеогастродуоденоскопия (ВГДС), ХЕЛПИЛ-тест",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
+     {
+      "name": "Лаборатория (40+ исследований): общие анализы, биохимия, липидный профиль, коагулограмма, глюкоза и гликированный гемоглобин, гормоны щитовидной железы, железо/ферритин/витамины D и B12/фолиевая кислота, маркеры воспаления, гепатиты B и C",
+      "why": "входит в пакет PRIME",
+      "payment": "paid_prime",
+      "source": "PRIME",
+      "needs_doctor_validation": false
+     },
      {
       "name": "Консультация гинеколога",
       "why": "входит в пакет PRIME",
@@ -323,28 +423,21 @@
       "needs_doctor_validation": false
      },
      {
-      "name": "ЭКГ",
+      "name": "Гинекологический мазок, ПАП-тест (жидкостная цитология), ПЦР на инфекции",
       "why": "входит в пакет PRIME",
       "payment": "paid_prime",
       "source": "PRIME",
       "needs_doctor_validation": false
      },
      {
-      "name": "Ферритин, железо, фолиевая кислота",
+      "name": "Пролактин, инсулин, кортизол",
       "why": "входит в пакет PRIME",
       "payment": "paid_prime",
       "source": "PRIME",
       "needs_doctor_validation": false
      },
      {
-      "name": "УЗИ малого таза (трансвагинально)",
-      "why": "входит в пакет PRIME",
-      "payment": "paid_prime",
-      "source": "PRIME",
-      "needs_doctor_validation": false
-     },
-     {
-      "name": "УЗИ молочных желёз",
+      "name": "УЗИ органов малого таза (трансвагинально) и молочных желез",
       "why": "входит в пакет PRIME",
       "payment": "paid_prime",
       "source": "PRIME",
@@ -375,7 +468,7 @@
      "block": "День подготовки",
      "time_window": null,
      "title": "Подготовка к чекапу",
-     "details": "Подготовку подтверждает клиника при записи."
+     "details": "Анализы крови — строго натощак. Подготовку подтверждает клиника при записи."
     },
     {
      "order": 2,
@@ -389,7 +482,7 @@
      "block": "После визита",
      "time_window": null,
      "title": "Результаты и заключение",
-     "details": "Результаты — на следующий день. Заключение врача-куратора через 2–3 дня."
+     "details": "Результаты — на следующий день. Заключение врача-куратора на 2-й день (по каталогу PRIME)."
     }
    ],
    "health_map": [
@@ -403,7 +496,7 @@
     {
      "item": "Заключение врача-куратора",
      "status": "next_step",
-     "when": "через 2–3 дня после визита",
+     "when": "на 2-й день после визита (по каталогу PRIME)",
      "why": "итог маршрута",
      "source": "PRIME"
     },
@@ -474,10 +567,11 @@
    ],
    "is_pregnant": null,
    "child_age_months": null,
+   "smoking": null,
    "state_version": 1
   },
   "assistant_message": "Я вижу симптомы, которые нельзя откладывать на плановый чекап. Пожалуйста, обратитесь за медицинской помощью сейчас — единый номер 103.",
-  "llm_status": "degraded_keyword",
+  "llm_status": "cached_golden",
   "result": {
    "is_emergency": true,
    "emergency_banner": "Обнаружены признаки состояния, требующего немедленной медицинской помощи. Единый номер экстренных служб: 103. Подбор чекапа не выполняется.",
